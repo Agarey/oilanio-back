@@ -1719,7 +1719,7 @@ const tutorCourseCardsFilter = (request, response) => {
 
     let whereAdded = false;
 
-    let queryText = "SELECT tutor_coursecards.id, tutors.description as \"tutor_description\", course_categories.name as \"category_name\", tutors.phone_number, tutors.city_id, tutors.teaching_language, cities.name as \"city_name\", tutor_coursecards.title, tutor_coursecards.currency,\n" +
+    let queryText = "SELECT tutor_coursecards.id, tutors.description as \"tutor_description\", course_categories.img_src as \"category_img\", course_categories.name as \"category_name\", tutors.phone_number, tutors.city_id, tutors.teaching_language, cities.name as \"city_name\", tutor_coursecards.title, tutor_coursecards.currency,\n" +
         "        tutor_coursecards.unit_of_time, tutor_coursecards.min_age, tutor_coursecards.max_age,\n" +
         "        tutors.can_work_online, tutors.can_work_online, tutor_coursecards.price, tutor_coursecards.schedule,\n" +
         "        tutor_coursecards.expecting_results, tutor_coursecards.start_requirements,\n" +
@@ -1811,6 +1811,8 @@ const tutorCourseCardsFilter = (request, response) => {
             queryText += "tutors.can_work_offline=true";
         }
     }
+
+    queryText += " order by img_src asc, fullname asc"
 
     console.log("QUERY TEXT: " + queryText);
 
