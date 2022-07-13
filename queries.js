@@ -3696,7 +3696,7 @@ const approveEditCard = (request, response) => {
         cardId
     } = request.body;
 
-    console.log('approve edit card with id: ' + cardId);
+    console.log('approved edit card with id: ' + cardId);
 
     pool.query(`select * from editing_coursecards where subcourse_id=$1 order by id asc`, [cardId], (error, result) => {
         if (error) {
