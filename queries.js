@@ -681,6 +681,16 @@ const getCourses = (request, response) => {
     })
 }
 
+const getSertificates = (request, response) => {
+    pool.query('SELECT * FROM tutor_sertificates', (error, results) => {
+        if (error) {
+            throw error
+        }
+        console.log('sertificates sent');
+        response.status(200).json(results.rows)
+    })
+}
+
 const getCourseById = (request, response) => {
     const id = parseInt(request.params.id);
     console.log("course id: " + id);
@@ -976,6 +986,78 @@ const deleteTeacher = (request, response) => {
 
 const getCourseCards = (request, response) => {
     pool.query('SELECT subcourses.id, course_categories.name as "category", subcourses.isonline, subcourses.title,\n' +
+        '        courses.website_url, cities.name as "city", subcourses.currency, subcourses.unit_of_time,\n' +
+        '        subcourses.description, subcourses.category_id as "direction_id", subcourses.ages, subcourses.type,\n' +
+        '        subcourses.format, subcourses.price, subcourses.schedule,\n' +
+        '        subcourses.expected_result, subcourses.start_requirements,\n' +
+        '        subcourses.duration, subcourses.rating, subcourses.verificated, courses.id as "course_id",\n' +
+        '        courses.title as "course_title", courses.phones, courses.promocode, courses.instagram,\n' +
+        '        courses.latitude, courses.description as "course_desc", courses.longitude, courses.addresses, courses.city_id, courses.url, courses.img_src,\n' +
+        '        courses.background_image_url from subcourses\n' +
+        '        inner join courses on subcourses.course_id = courses.id\n' +
+        '        inner join cities on courses.city_id = cities.id\n' +
+        '        inner join course_categories on subcourses.category_id = course_categories.id\n' +
+        '        where subcourses.approved=true and subcourses.is_archived=false and\n' +
+        '        subcourses.declined=false and city_id is not null\n' +
+        '        and category_id is not null\n' +
+        '        order by subcourses.verificated desc, order_coefficient asc', [], (error, results) => {
+        if (error) {
+            throw error
+        }
+        response.status(200).json(results.rows)
+    })
+}
+
+const getVerificatedCourseCards = (request, response) => {
+    pool.query('SELECT subcourses.id, course_categories.name as "category", subcourses.isonline, subcourses.title,\n' +
+    '        courses.website_url, subcourses.currency, subcourses.unit_of_time,\n' +
+    '        subcourses.description, subcourses.category_id as "direction_id", subcourses.ages, subcourses.type,\n' +
+    '        subcourses.format, subcourses.price, subcourses.schedule,\n' +
+    '        subcourses.expected_result, subcourses.start_requirements,\n' +
+    '        subcourses.duration, subcourses.rating, subcourses.verificated, courses.id as "course_id",\n' +
+    '        courses.title as "course_title", courses.phones, courses.promocode, courses.instagram,\n' +
+    '        courses.latitude, courses.description as "course_desc", courses.longitude, courses.addresses, courses.city_id, courses.url, courses.img_src,\n' +
+    '        courses.background_image_url from subcourses\n' +
+    '        inner join courses on subcourses.course_id = courses.id\n' +
+    '        inner join course_categories on subcourses.category_id = course_categories.id\n' +
+    '        where subcourses.approved=true and subcourses.verificated=true and subcourses.is_archived=false and\n' +
+    '        subcourses.declined=false and city_id is not null\n' +
+    '        and category_id is not null\n' +
+    '        order by subcourses.verificated desc, order_coefficient asc', [], (error, results) => {
+        if (error) {
+            throw error
+        }
+        response.status(200).json(results.rows)
+    })
+}
+
+const getNotVerificatedCourseCards = (request, response) => {
+    pool.query('SELECT subcourses.id, course_categories.name as "category", subcourses.isonline, subcourses.title,\n' +
+    '        courses.website_url, subcourses.currency, subcourses.unit_of_time,\n' +
+    '        subcourses.description, subcourses.category_id as "direction_id", subcourses.ages, subcourses.type,\n' +
+    '        subcourses.format, subcourses.price, subcourses.schedule,\n' +
+    '        subcourses.expected_result, subcourses.start_requirements,\n' +
+    '        subcourses.duration, subcourses.rating, subcourses.verificated, courses.id as "course_id",\n' +
+    '        courses.title as "course_title", courses.phones, courses.promocode, courses.instagram,\n' +
+    '        courses.latitude, courses.description as "course_desc", courses.longitude, courses.addresses, courses.city_id, courses.url, courses.img_src,\n' +
+    '        courses.background_image_url from subcourses\n' +
+    '        inner join courses on subcourses.course_id = courses.id\n' +
+    '        inner join course_categories on subcourses.category_id = course_categories.id\n' +
+    '        where subcourses.approved=true and subcourses.verificated=false and subcourses.is_archived=false and\n' +
+    '        subcourses.declined=false and city_id is not null\n' +
+    '        and category_id is not null\n' +
+    '        order by subcourses.verificated desc, order_coefficient asc', [], (error, results) => {
+        if (error) {
+            throw error
+        }
+        response.status(200).json(results.rows)
+    })
+}
+
+const getCourseCardsByCenterId = (request, response) => {
+    const centerId = parseInt(request.params.centerId)
+    
+    pool.query('SELECT subcourses.id, course_categories.name as "category", subcourses.isonline, subcourses.title,\n' +
         '        courses.website_url, subcourses.currency, subcourses.unit_of_time,\n' +
         '        subcourses.description, subcourses.category_id as "direction_id", subcourses.ages, subcourses.type,\n' +
         '        subcourses.format, subcourses.price, subcourses.schedule,\n' +
@@ -987,9 +1069,9 @@ const getCourseCards = (request, response) => {
         '        inner join courses on subcourses.course_id = courses.id\n' +
         '        inner join course_categories on subcourses.category_id = course_categories.id\n' +
         '        where subcourses.approved=true and subcourses.is_archived=false and\n' +
-        '        subcourses.declined=false and city_id is not null\n' +
+        '        subcourses.declined=false and course_id=$1 and city_id is not null\n' +
         '        and category_id is not null\n' +
-        '        order by subcourses.verificated desc, order_coefficient asc', [], (error, results) => {
+        '        order by subcourses.verificated desc, order_coefficient asc', [centerId], (error, results) => {
         if (error) {
             throw error
         }
@@ -1723,7 +1805,7 @@ const tutorCourseCardsFilter = (request, response) => {
         "        tutor_coursecards.unit_of_time, tutor_coursecards.min_age, tutor_coursecards.max_age,\n" +
         "        tutors.can_work_online, tutors.can_work_online, tutor_coursecards.price, tutor_coursecards.schedule,\n" +
         "        tutor_coursecards.expecting_results, tutor_coursecards.start_requirements,\n" +
-        "        tutor_coursecards.duration_word, tutor_coursecards.duration_value,\n" +
+        "        tutor_coursecards.duration_word, tutor_coursecards.category_id, tutor_coursecards.duration_value,\n" +
         "        tutors.id as \"tutor_id\", tutors.fullname,\n" +
         "        tutors.url, tutors.phone_number, tutors.img_src, tutors.address\n" +
         "        from tutor_coursecards\n" +
@@ -1824,6 +1906,26 @@ const tutorCourseCardsFilter = (request, response) => {
     })
 }
 
+const getTutorCourseCardsFilter = (request, response) => {
+    let queryText = "SELECT tutor_coursecards.id, tutors.description as \"tutor_description\", course_categories.img_src as \"category_img\", course_categories.name as \"category_name\", tutors.phone_number, tutors.city_id, tutors.teaching_language, cities.name as \"city_name\", tutor_coursecards.title, tutor_coursecards.currency,\n" +
+        "        tutor_coursecards.unit_of_time, tutor_coursecards.min_age, tutor_coursecards.max_age,\n" +
+        "        tutors.can_work_online, tutors.can_work_online, tutor_coursecards.price, tutor_coursecards.schedule,\n" +
+        "        tutor_coursecards.expecting_results, tutor_coursecards.start_requirements,\n" +
+        "        tutor_coursecards.duration_word, tutor_coursecards.duration_value,\n" +
+        "        tutors.id as \"tutor_id\", tutors.fullname,\n" +
+        "        tutors.url, tutors.phone_number, tutors.img_src, tutors.address\n" +
+        "        from tutor_coursecards\n" +
+        "        inner join tutors on tutor_coursecards.tutor_id = tutors.id\n" +
+        "        join cities on cities.id = tutors.city_id\n" +
+        "        join course_categories on course_categories.id=tutor_coursecards.category_id";
+
+    pool.query(queryText, [], (error, results) => {
+        if (error) {
+            throw error
+        }
+        response.status(200).json(results.rows);
+    })
+}
 const logUserClick = (request, response) => {
     const { course_id, card_id, event_name, is_tutor_card } = request.body
 
@@ -3698,6 +3800,18 @@ const getTutorCourse = (request, response) => {
     })
 }
 
+const getTutorSertificate = (request, response) => {
+    const id = parseInt(request.params.id)
+
+    pool.query('SELECT * FROM tutor_sertificates WHERE tutor_id = $1', [id], (error, results) => {
+        if (error) {
+            response.status(500).json('error')
+        }else {
+            response.status(200).json(results.rows[0])
+        }
+    })
+}
+
 const updateTutorInfo = (request, response) => {
     const {
         fullname,
@@ -3782,6 +3896,20 @@ const createTutorCourseCard = (request, response) => {
         })
 }
 
+const createTutorSertificate = (request, response) => {
+    const {
+        title, tutor_id, img_src
+    } = request.body;
+
+    pool.query('INSERT INTO tutor_sertificates (title, tutor_id, img_src) VALUES ($1, $2, $3)', [title, tutor_id, img_src], (error, result) => {
+        if (error) {
+            response.status(500).send("error");
+        }else{
+            response.status(200).send(`Sertificate added`)
+        }
+    })
+}
+
 const createTutor = (request, response) => {
     const {
         fullname,
@@ -3822,6 +3950,17 @@ const createTutor = (request, response) => {
 
 const getTutors = (request, response) => {
     pool.query('SELECT * FROM tutors order by id desc', (error, results) => {
+        if (error) {
+            response.status(500).json('error')
+        }else {
+            response.status(200).json(results.rows)
+        }
+    })
+}
+
+const getTutorsWithPhoto = (request, response) => {
+    const str = 'realibi'
+    pool.query('SELECT tutors.id, tutors.fullname, tutors.img_src, tutors.city_id, cities.name as "city_name" FROM tutors join cities on tutors.city_id = cities.id order by img_src asc', (error, results) => {
         if (error) {
             response.status(500).json('error')
         }else {
@@ -4111,6 +4250,8 @@ export default {
     createCabinet,
     saveCenterInfoChanges,
     deactivateSearchApplication,
+    getTutorCourseCardsFilter,
+    getTutorSertificate,
     getApplicationResponses,
     responseToSearchApplication,
     getCourseSearchApplication,
@@ -4123,6 +4264,7 @@ export default {
     checkCourseNotification,
     getCourseNotification,
     createCourseNotification,
+    createTutorSertificate,
     filterCallCenterRows,
     deleteCourseTeacher,
     deleteCourseCard,
@@ -4141,6 +4283,7 @@ export default {
     cardCreationPermission,
     getClickStatistics,
     getTutorsActiveCards,
+    getTutorsWithPhoto,
     getEditCards,
     sendEditCard,
     getCourseCategories,
@@ -4164,6 +4307,7 @@ export default {
     updateSubcourseSchedule,
     updateSubcoursePrice,
     updateSubcourseCategory,
+    getSertificates,
     updateSubcourseFormat,
     updateSubcourseAges,
     updateSubcourseType,
@@ -4179,6 +4323,9 @@ export default {
     createCallRequest,
     createHelpRequest,
     getCourseCards,
+    getVerificatedCourseCards,
+    getNotVerificatedCourseCards,
+    getCourseCardsByCenterId,
     getCourseCardById,
     getCourseCardsByCategoryId,
     getFeedbacks,
