@@ -1079,8 +1079,6 @@ const getCourseCardsByCenterId = (request, response) => {
     })
 }
 
-<<<<<<< HEAD
-=======
 const getTutorCoursecards = (request, response) => {
 
     const query = 'SELECT tutor_coursecards.id, tutors.fullname as "tutorsName", tutor_coursecards.tutor_id as "tutorsId", tutors.img_src, \n' + 
@@ -1276,8 +1274,6 @@ const updateTutorDescription = (request, response) => {
         })
 }
 
-
->>>>>>> origin/main
 const getCourseCardById = (request, response) => {
     const subcourseId = parseInt(request.params.subcourseId)
 
@@ -4483,6 +4479,7 @@ export default {
     getClickStatistics,
     getTutorsActiveCards,
     getTutorsWithPhoto,
+    getTutorCoursecards,
     getEditCards,
     sendEditCard,
     getCourseCategories,
