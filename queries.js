@@ -1079,77 +1079,6 @@ const getCourseCardsByCenterId = (request, response) => {
     })
 }
 
-const getVerificatedCourseCards = (request, response) => {
-    pool.query('SELECT subcourses.id, course_categories.name as "category", subcourses.isonline, subcourses.title,\n' +
-    '        courses.website_url, subcourses.currency, subcourses.unit_of_time,\n' +
-    '        subcourses.description, subcourses.category_id as "direction_id", subcourses.ages, subcourses.type,\n' +
-    '        subcourses.format, subcourses.price, subcourses.schedule,\n' +
-    '        subcourses.expected_result, subcourses.start_requirements,\n' +
-    '        subcourses.duration, subcourses.rating, subcourses.verificated, courses.id as "course_id",\n' +
-    '        courses.title as "course_title", courses.phones, courses.promocode, courses.instagram,\n' +
-    '        courses.latitude, courses.description as "course_desc", courses.longitude, courses.addresses, courses.city_id, courses.url, courses.img_src,\n' +
-    '        courses.background_image_url from subcourses\n' +
-    '        inner join courses on subcourses.course_id = courses.id\n' +
-    '        inner join course_categories on subcourses.category_id = course_categories.id\n' +
-    '        where subcourses.approved=true and subcourses.verificated=true and subcourses.is_archived=false and\n' +
-    '        subcourses.declined=false and city_id is not null\n' +
-    '        and category_id is not null\n' +
-    '        order by subcourses.verificated desc, order_coefficient asc', [], (error, results) => {
-        if (error) {
-            throw error
-        }
-        response.status(200).json(results.rows)
-    })
-}
-
-const getNotVerificatedCourseCards = (request, response) => {
-    pool.query('SELECT subcourses.id, course_categories.name as "category", subcourses.isonline, subcourses.title,\n' +
-    '        courses.website_url, subcourses.currency, subcourses.unit_of_time,\n' +
-    '        subcourses.description, subcourses.category_id as "direction_id", subcourses.ages, subcourses.type,\n' +
-    '        subcourses.format, subcourses.price, subcourses.schedule,\n' +
-    '        subcourses.expected_result, subcourses.start_requirements,\n' +
-    '        subcourses.duration, subcourses.rating, subcourses.verificated, courses.id as "course_id",\n' +
-    '        courses.title as "course_title", courses.phones, courses.promocode, courses.instagram,\n' +
-    '        courses.latitude, courses.description as "course_desc", courses.longitude, courses.addresses, courses.city_id, courses.url, courses.img_src,\n' +
-    '        courses.background_image_url from subcourses\n' +
-    '        inner join courses on subcourses.course_id = courses.id\n' +
-    '        inner join course_categories on subcourses.category_id = course_categories.id\n' +
-    '        where subcourses.approved=true and subcourses.verificated=false and subcourses.is_archived=false and\n' +
-    '        subcourses.declined=false and city_id is not null\n' +
-    '        and category_id is not null\n' +
-    '        order by subcourses.verificated desc, order_coefficient asc', [], (error, results) => {
-        if (error) {
-            throw error
-        }
-        response.status(200).json(results.rows)
-    })
-}
-
-const getCourseCardsByCenterId = (request, response) => {
-    const centerId = parseInt(request.params.centerId)
-    
-    pool.query('SELECT subcourses.id, course_categories.name as "category", subcourses.isonline, subcourses.title,\n' +
-        '        courses.website_url, subcourses.currency, subcourses.unit_of_time,\n' +
-        '        subcourses.description, subcourses.category_id as "direction_id", subcourses.ages, subcourses.type,\n' +
-        '        subcourses.format, subcourses.price, subcourses.schedule,\n' +
-        '        subcourses.expected_result, subcourses.start_requirements,\n' +
-        '        subcourses.duration, subcourses.rating, subcourses.verificated, courses.id as "course_id",\n' +
-        '        courses.title as "course_title", courses.phones, courses.promocode, courses.instagram,\n' +
-        '        courses.latitude, courses.description as "course_desc", courses.longitude, courses.addresses, courses.city_id, courses.url, courses.img_src,\n' +
-        '        courses.background_image_url from subcourses\n' +
-        '        inner join courses on subcourses.course_id = courses.id\n' +
-        '        inner join course_categories on subcourses.category_id = course_categories.id\n' +
-        '        where subcourses.approved=true and subcourses.is_archived=false and\n' +
-        '        subcourses.declined=false and course_id=$1 and city_id is not null\n' +
-        '        and category_id is not null\n' +
-        '        order by subcourses.verificated desc, order_coefficient asc', [centerId], (error, results) => {
-        if (error) {
-            throw error
-        }
-        response.status(200).json(results.rows)
-    })
-}
-
 const getCourseCardById = (request, response) => {
     const subcourseId = parseInt(request.params.subcourseId)
 
@@ -3969,10 +3898,10 @@ const createTutorCourseCard = (request, response) => {
 
 const createTutorSertificate = (request, response) => {
     const {
-        title, tutor_id, img_src
+        id, title, tutor_id, img_src
     } = request.body;
 
-    pool.query('INSERT INTO tutor_sertificates (title, tutor_id, img_src) VALUES ($1, $2, $3)', [title, tutor_id, img_src], (error, result) => {
+    pool.query('INSERT INTO public.tutor_sertificates (id, title, tutor_id, img_src) VALUES ($1, $2, $3, $4)', [id, title, tutor_id, img_src], (error, result) => {
         if (error) {
             response.status(500).send("error");
         }else{
