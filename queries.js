@@ -1079,6 +1079,205 @@ const getCourseCardsByCenterId = (request, response) => {
     })
 }
 
+<<<<<<< HEAD
+=======
+const getTutorCoursecards = (request, response) => {
+
+    const query = 'SELECT tutor_coursecards.id, tutors.fullname as "tutorsName", tutor_coursecards.tutor_id as "tutorsId", tutors.img_src, \n' + 
+                  'tutor_coursecards.schedule, tutor_coursecards.price, tutor_coursecards.currency, tutor_coursecards.unit_of_time, \n' +
+                  'tutor_coursecards.title, course_categories.name as "courseCategory", tutor_coursecards.is_online, \n' +
+                  'tutors.teaching_language, tutor_coursecards.min_age, tutor_coursecards.max_age, tutors.description as "tutorDescription", \n' +
+                  'tutor_coursecards.start_requirements, tutor_coursecards.expecting_results, tutor_coursecards.verificated, \n' + 
+                  'tutor_coursecards.category_id from tutor_coursecards \n' +
+                  'inner join tutors on tutor_coursecards.tutor_id = tutors.id \n' +
+                  'inner join course_categories on tutor_coursecards.category_id = course_categories.id'
+
+    pool.query(query, [], (error, results) => {
+        if (error) {
+            console.log(error)
+            throw error
+        }
+        response.status(200).json(results.rows)
+    })
+}
+
+const getVerificatedTutorCoursecards = (request, response) => {
+
+    const query = 'SELECT tutor_coursecards.id, tutors.fullname as "tutorsName", tutor_coursecards.tutor_id as "tutorsId", tutors.img_src, \n' + 
+                  'tutor_coursecards.schedule, tutor_coursecards.price, tutor_coursecards.currency, tutor_coursecards.unit_of_time, \n' +
+                  'tutor_coursecards.title, course_categories.name as "courseCategory", tutor_coursecards.is_online, \n' +
+                  'tutors.teaching_language, tutor_coursecards.min_age, tutor_coursecards.max_age, tutors.description as "tutorDescription", \n' +
+                  'tutor_coursecards.start_requirements, tutor_coursecards.expecting_results, tutor_coursecards.verificated, \n' + 
+                  'tutor_coursecards.category_id from tutor_coursecards \n' +
+                  'inner join tutors on tutor_coursecards.tutor_id = tutors.id \n' +
+                  'inner join course_categories on tutor_coursecards.category_id = course_categories.id \n' +
+                  'where verificated=true'
+
+    pool.query(query, [], (error, results) => {
+        if (error) {
+            console.log(error)
+            throw error
+        }
+        response.status(200).json(results.rows)
+    })
+}
+
+const getNotVerificatedTutorCoursecards = (request, response) => {
+
+    const query = 'SELECT tutor_coursecards.id, tutors.fullname as "tutorsName", tutor_coursecards.tutor_id as "tutorsId", tutors.img_src, \n' + 
+                  'tutor_coursecards.schedule, tutor_coursecards.price, tutor_coursecards.currency, tutor_coursecards.unit_of_time, \n' +
+                  'tutor_coursecards.title, course_categories.name as "courseCategory", tutor_coursecards.is_online, \n' +
+                  'tutors.teaching_language, tutor_coursecards.min_age, tutor_coursecards.max_age, tutors.description as "tutorDescription", \n' +
+                  'tutor_coursecards.start_requirements, tutor_coursecards.expecting_results, tutor_coursecards.verificated, \n' + 
+                  'tutor_coursecards.category_id from tutor_coursecards \n' +
+                  'inner join tutors on tutor_coursecards.tutor_id = tutors.id \n' +
+                  'inner join course_categories on tutor_coursecards.category_id = course_categories.id \n' +
+                  'where verificated=false'
+
+    pool.query(query, [], (error, results) => {
+        if (error) {
+            console.log(error)
+            throw error
+        }
+        response.status(200).json(results.rows)
+    })
+}
+
+const getTutorCourseCardsByTutorId = (request, response) => {
+
+    const tutorId = parseInt(request.params.tutorId)
+
+    const query = 'SELECT tutor_coursecards.id, tutors.fullname as "tutorsName", tutor_coursecards.tutor_id as "tutorsId", tutors.img_src, \n' + 
+                  'tutor_coursecards.schedule, tutor_coursecards.price, tutor_coursecards.currency, tutor_coursecards.unit_of_time, \n' +
+                  'tutor_coursecards.title, course_categories.name as "courseCategory", tutor_coursecards.is_online, \n' +
+                  'tutors.teaching_language, tutor_coursecards.min_age, tutor_coursecards.max_age, tutors.description as "tutorDescription", \n' +
+                  'tutor_coursecards.start_requirements, tutor_coursecards.expecting_results, tutor_coursecards.verificated, \n' + 
+                  'tutor_coursecards.category_id from tutor_coursecards \n' +
+                  'inner join tutors on tutor_coursecards.tutor_id = tutors.id \n' +
+                  'inner join course_categories on tutor_coursecards.category_id = course_categories.id \n' +
+                  'WHERE tutor_id=$1'
+
+    pool.query(query, [tutorId], (error, results) => {
+        if (error) {
+            console.log(error)
+            throw error
+        }
+        response.status(200).json(results.rows)
+    })
+}
+
+const setTutorCourseCardVerificated = (request, response) => {
+    let {id, verificated} = request.body;
+    pool.query(`UPDATE tutor_coursecards SET verificated=${verificated} WHERE id=${id}`,
+        (error, result) => {
+            if (error) {
+                throw error
+            }
+        })
+}
+
+const setTutorCourseTitle = (request, respopnse) => {
+    let { id, title } = request.body
+    pool.query('update tutor_coursecards set title=$2 where id=$1', [id, title],
+        (error, result) => {
+            if (error) {
+                throw error
+            }
+        })
+}
+
+const updateTutorCourseSchedule = (request, respopnse) => {
+    let { id, schedule } = request.body
+    pool.query(`UPDATE tutor_coursecards SET schedule=${schedule} WHERE id=${id}`,
+        (error, result) => {
+            if (error) {
+                throw error
+            }
+        })
+}
+
+const updateTutorCoursePrice = (request, response) => {
+    let {id, price, currency, unitOfTime} = request.body;
+    pool.query('update tutor_coursecards set price=$2, currency=$3, unit_of_time=$4 where id=$1', [id, price, currency, unitOfTime],
+        (error, result) => {
+            if (error) {
+                throw error
+            }
+        })
+}
+
+const updateTutorCourseCategory = (request, response) => {
+    let {id, courseCategoryId} = request.body;
+    pool.query('update tutor_coursecards set category_id=$2 where id=$1', [id, courseCategoryId],
+        (error, result) => {
+            if (error) {
+                throw error
+            }
+        })
+}
+
+const updateTutorsTeachingLanguage = (request, response) => {
+    let {id, teachingLanguage} = request.body;
+    pool.query('update tutors set teaching_language=$2 where id=$1', [id, teachingLanguage],
+        (error, result) => {
+            if (error) {
+                throw error
+            }
+        })
+}
+
+const updateTutorCourseMinMaxAges = (request, response) => {
+    let {id, minAge, maxAge} = request.body;
+    pool.query('update tutor_coursecards set min_age=$2, max_age=$3 where id=$1', [id, minAge, maxAge],
+        (error, result) => {
+            if (error) {
+                throw error
+            }
+        })
+}
+
+const setTutorCourseIsOnline = (request, response) => {
+    let {id, isOnline} = request.body;
+    pool.query('update tutor_coursecards set is_online=$2 where id=$1', [id, isOnline],
+        (error, result) => {
+            if (error) {
+                throw error
+            }
+        })
+}
+
+const updateTutorsStartRequirements = (request, response) => {
+    let {id, startRequirements} = request.body;
+    pool.query('update tutor_coursecards set start_requirements=$2 where id=$1', [id, startRequirements],
+        (error, result) => {
+            if (error) {
+                throw error
+            }
+        })
+}
+
+const updateTutorCourseExpectingResults = (request, response) => {
+    let {id, expectingResults} = request.body;
+    pool.query('update tutor_coursecards set expecting_results=$2 where id=$1', [id, expectingResults],
+        (error, result) => {
+            if (error) {
+                throw error
+            }
+        })
+}
+
+const updateTutorDescription = (request, response) => {
+    let {id, tutorDescription} = request.body;
+    pool.query('update tutors set description=$2 where id=$1', [id, tutorDescription],
+        (error, result) => {
+            if (error) {
+                throw error
+            }
+        })
+}
+
+
+>>>>>>> origin/main
 const getCourseCardById = (request, response) => {
     const subcourseId = parseInt(request.params.subcourseId)
 
@@ -4362,5 +4561,19 @@ export default {
     updateTeacher,
     deleteTeacher,
     handlePayment,
-    handlePaymentPost
+    handlePaymentPost,
+    getVerificatedTutorCoursecards,
+    getNotVerificatedTutorCoursecards,
+    getTutorCourseCardsByTutorId,
+    setTutorCourseCardVerificated,
+    setTutorCourseTitle,
+    updateTutorCourseSchedule,
+    updateTutorCoursePrice,
+    updateTutorCourseCategory,
+    updateTutorsTeachingLanguage,
+    updateTutorCourseMinMaxAges,
+    setTutorCourseIsOnline,
+    updateTutorsStartRequirements,
+    updateTutorCourseExpectingResults,
+    updateTutorDescription
 }
