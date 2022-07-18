@@ -242,7 +242,7 @@ app.post(
 
 
 
-let port = process.env.PORT;
+let port = 3030;
 
 app.listen(port, () => {
     console.log(`Goco backend running on port ${port}.`)
