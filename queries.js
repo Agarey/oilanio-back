@@ -751,11 +751,11 @@ const updateCourseInfo = (request, response) => {
         website_url,
         instagram,
         addresses,
-        cityId,
+        city_id,
         id
     } = request.body;
 
-    pool.query('UPDATE public.courses SET title=$1, subtitle=$2, description=$3, phones=$4, email=$5, website_url=$6, instagram=$7, addresses=$8, cityId=$9 WHERE id=$10',
+    pool.query('UPDATE public.courses SET title=$1, subtitle=$2, description=$3, phones=$4, email=$5, website_url=$6, instagram=$7, addresses=$8, city_id=$9 WHERE id=$10',
         [
             title,
             subtitle,
@@ -765,16 +765,19 @@ const updateCourseInfo = (request, response) => {
             website_url,
             instagram,
             addresses,
-            cityId,
+            city_id,
             id
         ],
         (error, results) => {
-        if (error) {
-            response.status(500).json('error');
-        } else {
-            response.status(200).json(results.rows[0]);
-        };
-    });
+            console.log(error);
+            console.log(results);
+            if (error) {
+                response.status(500).json('error');
+            } else {
+                response.status(200).json(results.rows[0]);
+            };
+        }
+    );
 };
 
 const deleteCourse = (request, response) => {
@@ -4074,7 +4077,8 @@ const updateTutorInfo = (request, response) => {
         ],
         (error, results) => {
         if (error) {
-            response.status(500).json('error')
+            response.status(500).json('error');
+           console.log("Error", error);
         }else {
             response.status(200).json(results.rows[0])
         }
