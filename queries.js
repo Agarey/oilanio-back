@@ -741,6 +741,42 @@ const updateCourse = (request, response) => {
     )
 }
 
+const updateCourseInfo = (request, response) => {
+    const {
+        title,
+        subtitle,
+        description,
+        phones,
+        email,
+        website_url,
+        instagram,
+        addresses,
+        cityId,
+        id
+    } = request.body;
+
+    pool.query('UPDATE public.courses SET title=$1, subtitle=$2, description=$3, phones=$4, email=$5, website_url=$6, instagram=$7, addresses=$8, cityId=$9 WHERE id=$10',
+        [
+            title,
+            subtitle,
+            description,
+            phones,
+            email,
+            website_url,
+            instagram,
+            addresses,
+            cityId,
+            id
+        ],
+        (error, results) => {
+        if (error) {
+            response.status(500).json('error');
+        } else {
+            response.status(200).json(results.rows[0]);
+        };
+    });
+};
+
 const deleteCourse = (request, response) => {
     const id = parseInt(request.params.id)
 
@@ -4572,5 +4608,6 @@ export default {
     setTutorCourseIsOnline,
     updateTutorsStartRequirements,
     updateTutorCourseExpectingResults,
-    updateTutorDescription
+    updateTutorDescription,
+    updateCourseInfo
 }

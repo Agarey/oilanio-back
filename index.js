@@ -195,6 +195,7 @@ app.post('/getStudentApplications', db.getStudentApplications)
 app.get('/imagesBase', db.getImagesBase)
 app.get('/partners_block', db.getPartners)
 app.post('/studentLogin', db.studentLogin)
+app.post('/updateCourseInfo', db.updateCourseInfo)
 
 app.post('/createAccountTest', db.createAccountTest)
 app.get('/getAccountsTest', db.getAccountsTest)
