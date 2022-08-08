@@ -4448,6 +4448,46 @@ const getPartners = (request, response) => {
     });
 }
 
+const deleteTutorSertificate = (request, response) => {
+    const {
+        id
+    } = request.body;
+
+    pool.query('delete from tutor_sertificates where id=$1', [id],
+        (error, results) => {
+            if (error) {
+                response.status(500).json('error')
+                console.error(error)
+            } else {
+                response.status(200).json('ok')
+            }
+        }
+    );
+};
+
+const editTutorSertificateTitle = (request, response) => {
+    const {
+        id, 
+        title
+    } = request.body;
+
+    pool.query('UPDATE public.tutor_sertificates SET title=$2 WHERE id=$1', 
+        [
+            id,
+            title
+        ],
+        (error, results) => {
+            if (error) {
+                response.status(500).json('error')
+                console.error(error)
+            } else {
+                response.status(200).json('ok')
+            }
+        }
+    );
+};
+
+
 export default {
     getPartners,
     getFilteredCategories,
@@ -4613,5 +4653,7 @@ export default {
     updateTutorsStartRequirements,
     updateTutorCourseExpectingResults,
     updateTutorDescription,
-    updateCourseInfo
+    updateCourseInfo,
+    deleteTutorSertificate,
+    editTutorSertificateTitle
 }
