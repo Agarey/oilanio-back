@@ -422,7 +422,7 @@ const createDealInMindsales = (clientName, clientPhone) => {
                 "createDealIfExistsClient": true,
                 "deals": [
                     {
-                        "dealFunnelStepId": 19,
+                        "dealFunnelStepId": 22,
                         "dealStatusId": 1,
                         "dealFields": [
                             {
@@ -990,6 +990,17 @@ const createTeacher = (request, response) => {
             throw error
         }
         response.status(201).send(`teacher added with ID: ${result.id}`)
+    })
+}
+
+const newSession = (request, response) => {
+    const { user_id, user_role, log_date } = request.body
+
+    pool.query('INSERT INTO session_control (user_id, user_role, log_date) VALUES ($1, $2, $3)', [user_id, user_role, log_date], (error, result) => {
+        if (error) {
+            throw error
+        }
+        response.status(201).send(`session added`)
     })
 }
 
@@ -4523,6 +4534,7 @@ export default {
     getTelegramUsersTutors,
     getCourseSearchApplicationStatistics,
     createCabinet,
+    newSession,
     saveCenterInfoChanges,
     deactivateSearchApplication,
     getTutorCourseCardsFilter,
