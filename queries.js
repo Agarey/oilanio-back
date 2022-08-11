@@ -1997,7 +1997,7 @@ const courseCardsFilter = (request, response) => {
         queryText += " where ";
     }
 
-    if(isOnline === true){
+    if(isOnline === '1'){
         queryText += "subcourses.isOnline=true";
     }else{
         queryText += "subcourses.isOnline=false";
