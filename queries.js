@@ -37,12 +37,10 @@ const pool = new Pool(productionPoolOptions);
 let stuffEmails = [
     'zane.css34@gmail.com',
     'azat.aliaskar@gmail.com',
-    'assemmurzagulova@gmail.com',
     'alexdrumm13@gmail.com',
     'zhaksybaev0107@gmail.com',
     'oilanabaz7@gmail.com',
     'ardakova97@inbox.ru',
-    'aruzhan.oilan@gmail.com',
     'zznnznzn3@gmail.com'
 ]
 
@@ -3314,7 +3312,8 @@ const createCourseSearchTicket = async (request, response) => {
         message,
         role_id,
         course_id,
-        promocode
+        promocode,
+        price
     } = request.body;
 
     console.log(request.body);
@@ -3327,7 +3326,7 @@ const createCourseSearchTicket = async (request, response) => {
                 throw error;
             }else{
                 for(let i = 0; i < result.rows.length; i++){
-                    await pool.query(`INSERT INTO public.course_search_tickets(city_id, direction_id, is_online, name, age, phone, email, message, datetime, is_active, uuid_string, course_id, role_id, promocode) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, current_timestamp, true, $9, $10, $11, $12)`,
+                    await pool.query(`INSERT INTO public.course_search_tickets(city_id, direction_id, is_online, name, age, phone, email, message, datetime, is_active, uuid_string, course_id, role_id, promocode, price) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, current_timestamp, true, $9, $10, $11, $12, $13)`,
                         [
                             city_id,
                             direction_id,
@@ -3340,7 +3339,8 @@ const createCourseSearchTicket = async (request, response) => {
                             uuidString,
                             result.rows[i].course_id,
                             role_id,
-                            promocode
+                            promocode,
+                            price
                         ],
                         async (insertError, results) => {
                             if (insertError) {
@@ -3362,7 +3362,7 @@ const createCourseSearchTicket = async (request, response) => {
             }
         });
     }else{
-        await pool.query(`INSERT INTO public.course_search_tickets(city_id, direction_id, is_online, name, age, phone, email, message, datetime, is_active, uuid_string, course_id, role_id, promocode) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, current_timestamp, true, $9, $10, $11, $12)`,
+        await pool.query(`INSERT INTO public.course_search_tickets(city_id, direction_id, is_online, name, age, phone, email, message, datetime, is_active, uuid_string, course_id, role_id, promocode, price) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, current_timestamp, true, $9, $10, $11, $12, $13)`,
             [
                 city_id,
                 direction_id,
@@ -3375,7 +3375,8 @@ const createCourseSearchTicket = async (request, response) => {
                 uuidString,
                 course_id,
                 role_id,
-                promocode
+                promocode, 
+                price
             ],
             async (insertError, results) => {
                 if (insertError) {
