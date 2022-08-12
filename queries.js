@@ -4553,6 +4553,29 @@ const editTutorSertificateTitle = (request, response) => {
     );
 };
 
+const editTeacherInfo = (request, response) => {
+    const {
+        id, 
+        fullname,
+        description
+    } = request.body;
+    pool.query('UPDATE public.teachers SET fullname=$2 description=$3 WHERE id=$1', 
+        [
+            id,
+            fullname,
+            description
+        ],
+        (error, results) => {
+            if (error) {
+                response.status(500).json('error')
+                console.error(error)
+            } else {
+                response.status(200).json('ok')
+            }
+        }
+    );
+}
+
 
 export default {
     getPartners,
@@ -4722,5 +4745,6 @@ export default {
     updateTutorDescription,
     updateCourseInfo,
     deleteTutorSertificate,
-    editTutorSertificateTitle
+    editTutorSertificateTitle,
+    editTeacherInfo
 }

@@ -199,6 +199,7 @@ app.post('/studentLogin', db.studentLogin)
 app.post('/updateCourseInfo', db.updateCourseInfo)
 app.post('/deleteTutorSertificate', db.deleteTutorSertificate)
 app.post('/editTutorSertificateTitle', db.editTutorSertificateTitle)
+app.post('/editTeacherInfo', db.editTeacherInfo)
 app.post('/createAccountTest', db.createAccountTest)
 app.get('/getAccountsTest', db.getAccountsTest)
 
