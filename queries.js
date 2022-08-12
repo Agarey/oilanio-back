@@ -440,6 +440,59 @@ const createDealInMindsales = (clientName, clientPhone) => {
         .catch(response => console.log('Deal was not created in Mindsales. ' + clientPhone));
 }
 
+const createTicketInMindsales = (clientName, clientPhone, clientMail, clientDirection, clientPrice, clientMessage) => {
+    let data = {
+        "data": [
+            {
+                "clientSourceId": 1,
+                "clientManagerId": null,
+                "phones": [
+                    clientPhone
+                ],
+                "clientFields": [
+                    {
+                        "id": 1,
+                        "value": clientName
+                    },
+                    {
+                        "id": 4,
+                        "value": clientMail
+                    },
+                    {
+                        "id": 10,
+                        "value": clientDirection
+                    },
+                    {
+                        "id": 11,
+                        "value": clientPrice
+                    },
+                    {
+                        "id": 12,
+                        "value": clientMessage
+                    },
+                ],
+                "createDealIfExistsClient": true,
+                "deals": [
+                    {
+                        "dealFunnelStepId": 22,
+                        "dealStatusId": 1,
+                        "dealFields": [
+                            {
+                                "id": 1,
+                                "value": "Сумма"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+
+    axios.post('https://ms5ct.mindsales.kz/api/abaz/492f8134663308d9347fe6bceabb6ae0/addclientsdeals', data)
+        .then(response => console.log('Deal created in Mindsales. ' + clientName))
+        .catch(response => console.log('Deal was not created in Mindsales. ' + clientPhone));
+}
+
 const foo = () => {
 
     let applications = [
@@ -3434,7 +3487,7 @@ const createCourseSearchTicket = async (request, response) => {
     let nameForMindsales = `Заявка на поиск курса. ${name}`;
     let phoneForMindsales = phone.replace(/[(]/, '').replace(/[)]/, '').replace(/-/g, '');
 
-    createDealInMindsales(nameForMindsales, phoneForMindsales);
+    createTicketInMindsales(nameForMindsales, phoneForMindsales, email, directionName, price, message);
 
     response.status(200).json({uuid: uuidString});
 }
