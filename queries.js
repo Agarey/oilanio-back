@@ -3366,7 +3366,8 @@ const createCourseSearchTicket = async (request, response) => {
         role_id,
         course_id,
         promocode,
-        price
+        price,
+        connection
     } = request.body;
 
     console.log(request.body);
@@ -3475,7 +3476,7 @@ const createCourseSearchTicket = async (request, response) => {
 `
                         sendEmail([email], `Oilan. Ваша заявка на поиск курса!`, studentEmailMessage);
 
-                        let mailMessageForSubscribed = `Имя пользователя: ${name}.\nТелефон: ${phone}.\nВыбранное направление: ${directionName}\nПромокод:${promocode === undefined ? 'нет промокода' : promocode}\n${(role_id == 4 && course_id != 0) ? `Центр: ${courseTitleResult.rows[0].title}` : ''} ${(role_id == 6 && course_id != 0) ?`Репетитор: ${courseTitleResult.rows[0].fullname}` : ''} ${(course_id == 0 && role_id == 4) ? 'Все центры' : ''} ${(course_id == 0 && role_id == 6) ? 'Все репетиторы' : ''}\nСообщение: ${message}`;
+                        let mailMessageForSubscribed = `Имя пользователя: ${name}.\nТелефон: ${phone}.\nВыбранное направление: ${directionName}\nПредпочитаемый способ связи: ${connection}\nЦена: ${price}\n${(role_id == 4 && course_id != 0) ? `Центр: ${courseTitleResult.rows[0].title}` : ''} ${(role_id == 6 && course_id != 0) ?`Репетитор: ${courseTitleResult.rows[0].fullname}` : ''} ${(course_id == 0 && role_id == 4) ? 'Все центры' : ''} ${(course_id == 0 && role_id == 6) ? 'Все репетиторы' : ''}\nСообщение: ${message}`;
                         let mailMessageForNotSubscribed = `Имя пользователя: ${name}.\nСообщение: ${message}`;
                         sendEmail(stuffEmails, `Oilan. Новая заявка на поиск ${role_id === 4 ? 'курса' : 'репетитора'}!`, mailMessageForSubscribed);
                     }
