@@ -38,7 +38,6 @@ let stuffEmails = [
     'zane.css34@gmail.com',
     'azat.aliaskar@gmail.com',
     'alexdrumm13@gmail.com',
-    'zhaksybaev0107@gmail.com',
     'oilanabaz7@gmail.com',
     'ardakova97@inbox.ru',
     'zznnznzn3@gmail.com'
@@ -3453,6 +3452,16 @@ const createCourseSearchTicket = async (request, response) => {
     }
 
     let directionName = "";
+    let cityName = "";
+
+    // await pool.query(`select name from cities where id=${city_id}`,
+    //     async (error, сitiesResult) => {
+    //         if (error) {
+    //             throw error
+    //         }
+    //         console.log(сitiesResult.rows);
+    //     }
+    // )
 
     await pool.query(`select name from course_categories where id=${direction_id}`,
         async (error, categoriesResult) => {
@@ -3490,7 +3499,7 @@ const createCourseSearchTicket = async (request, response) => {
     let nameForMindsales = `Заявка на поиск курса. ${name}`;
     let phoneForMindsales = phone.replace(/[(]/, '').replace(/[)]/, '').replace(/-/g, '');
 
-    createTicketInMindsales(nameForMindsales, phoneForMindsales, email, directionName, price, message);
+    // createTicketInMindsales(nameForMindsales, phoneForMindsales, email, directionName, price, message);
 
     response.status(200).json({uuid: uuidString});
 }
