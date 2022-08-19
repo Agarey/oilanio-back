@@ -136,7 +136,7 @@ app.post('/updateOperationPersonal3Row', roleMiddleware([3, 1]), db.updateOperat
 app.post('/callCenterAddCenter', roleMiddleware([2 || "2", 1 || "1"]), db.callCenterAddCenter)
 app.post('/deleteCourseCard', roleMiddleware([4 , 1]), db.deleteCourseCard)
 app.post('/addCourseCard', db.addCourseCard)
-app.post('/deleteCourseTeacher', roleMiddleware([4 , 1]), db.deleteCourseTeacher)
+app.post('/deleteCourseTeacher', db.deleteCourseTeacher)
 app.post('/filterCallCenterRows', roleMiddleware([2 , 1]), db.filterCallCenterRows)
 app.post('/createCourseNotification', roleMiddleware([1, 2]), db.createCourseNotification)
 app.post('/getCourseNotification', roleMiddleware([1, 4]), db.getCourseNotification)
@@ -206,6 +206,10 @@ app.get('/getAccountsTest', db.getAccountsTest)
 app.get('/getTelegramFeedbacksCenters', db.getTelegramFeedbacksCenters)
 app.get('/getTelegramFeedbacksTutors', db.getTelegramFeedbacksTutors)
 app.get('/getRegions', db.getRegions)
+app.get('/getCenterStatus', db.getCenterStatus)
+app.get('/getSessionCourse', db.getSessionCourse)
+app.get('/getCourseApplicationCount', db.getCourseApplicationCount)
+app.post('/changeStatusToHold', db.changeStatusToHold)
 
 let devPublicRoute = "dev\\goco-backend\\public";
 let productionPublicRoute = "/root/goco-backend/public";

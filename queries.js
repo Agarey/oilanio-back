@@ -3072,7 +3072,8 @@ const deleteCourseCard = (request, response) => {
 const deleteCourseTeacher = (request, response) => {
     const { teacherId } = request.body;
 
-    pool.query(`update teachers set fullname='test' where id=$1`, [ teacherId ], (error, results) => {
+    console.log(request.body);
+    pool.query(`DELETE FROM public.teachers where id=$1`, [ teacherId ], (error, results) => {
         if (error) {
             throw error
         }
@@ -3367,7 +3368,8 @@ const createCourseSearchTicket = async (request, response) => {
         course_id,
         promocode,
         price,
-        connection
+        connection,
+        language
     } = request.body;
 
     console.log(request.body);
@@ -3476,7 +3478,7 @@ const createCourseSearchTicket = async (request, response) => {
 `
                         sendEmail([email], `Oilan. Ваша заявка на поиск курса!`, studentEmailMessage);
 
-                        let mailMessageForSubscribed = `Имя пользователя: ${name}.\nТелефон: ${phone}.\nВыбранное направление: ${directionName}\nПредпочитаемый способ связи: ${connection}\nЦена: ${price}\n${(role_id == 4 && course_id != 0) ? `Центр: ${courseTitleResult.rows[0].title}` : ''} ${(role_id == 6 && course_id != 0) ?`Репетитор: ${courseTitleResult.rows[0].fullname}` : ''} ${(course_id == 0 && role_id == 4) ? 'Все центры' : ''} ${(course_id == 0 && role_id == 6) ? 'Все репетиторы' : ''}\nСообщение: ${message}`;
+                        let mailMessageForSubscribed = `Имя пользователя: ${name}.\nТелефон: ${phone}.\nВыбранное направление: ${directionName}\nФормат обучения: ${isOnline ? "Online" : "Offline"}\nЯзык обучения: ${language}\nГород: ${city_id}\nПредпочитаемый способ связи: ${connection}\nЦена: ${price}\nСообщение: ${message}\n${(role_id == 4 && course_id != 0) ? `Центр: ${courseTitleResult.rows[0].title}` : ''} ${(role_id == 6 && course_id != 0) ?`Репетитор: ${courseTitleResult.rows[0].fullname}` : ''} ${(course_id == 0 && role_id == 4) ? 'Все центры' : ''} ${(course_id == 0 && role_id == 6) ? 'Все репетиторы' : ''}`;
                         let mailMessageForNotSubscribed = `Имя пользователя: ${name}.\nСообщение: ${message}`;
                         sendEmail(stuffEmails, `Oilan. Новая заявка на поиск ${role_id === 4 ? 'курса' : 'репетитора'}!`, mailMessageForSubscribed);
                     }
@@ -4560,7 +4562,8 @@ const editTeacherInfo = (request, response) => {
         fullname,
         description
     } = request.body;
-    pool.query('UPDATE public.teachers SET fullname=$2 description=$3 WHERE id=$1', 
+
+    pool.query(`UPDATE public.teachers SET fullname=$2, description=$3 WHERE id=$1`, 
         [
             id,
             fullname,
@@ -4577,6 +4580,72 @@ const editTeacherInfo = (request, response) => {
     );
 }
 
+const getCenterStatus = (request, response) => {
+    const {
+        category_id,
+        isOnline,
+        city_id
+    } = request.query;
+
+    pool.query(`SELECT courses.id, subcourses.category_id, subcourses.isonline, courses.city_id FROM courses inner join subcourses on courses.id=subcourses.course_id WHERE subcourses.category_id=$1 and subcourses.isonline=$2 and courses.city_id=$3 and courses.status='beginner'`, [
+        category_id,
+        isOnline,
+        city_id
+    ], (error, result) => {
+        if(error){
+            response.status(500).send('error');
+        }else{
+            console.log(result);
+            response.status(200).json(result.rows);
+        }
+    });
+}
+
+const getSessionCourse = (request, response) => {
+    const id = request.query.id;
+    pool.query(`SELECT * FROM session_control WHERE session_control.user_id=$1 and session_control.user_role=4`, [
+        id
+    ], (error, result) => {
+        if(error){
+            response.status(500).send('error');
+        }else{
+            response.status(200).json(result.rows);
+        }
+    });
+}
+
+const getCourseApplicationCount = (request, response) => {
+    const id = request.query.id;
+    pool.query(`SELECT (select count(distinct course_search_tickets.course_id) from course_search_tickets join courses on courses.id=course_search_tickets.course_id where course_search_tickets.course_id=$1) as "application_count", course_search_tickets.id, deactivated_date, city_id, 
+    direction_id, course_search_tickets.name, phone, message, 
+    datetime, is_active, is_online, age, email, uuid_string, course_id, role_id
+    FROM public.course_search_tickets WHERE course_search_tickets.role_id=4 and course_search_tickets.course_id=$1`,  
+        [id],
+        (error, result) => {
+        if (error) {
+            throw error
+        } else{
+            response.status(200).json(result.rows);
+        }
+    })
+}
+
+const changeStatusToHold = (request, response) => {
+    const id = request.body.id;
+    pool.query(`UPDATE public.courses SET status='hold' WHERE id=$1`, 
+        [
+            id
+        ],
+        (error, results) => {
+            if (error) {
+                response.status(500).json('error')
+                console.error(error)
+            } else {
+                response.status(200).json('ok')
+            }
+        }
+    );
+};
 
 export default {
     getPartners,
@@ -4747,5 +4816,9 @@ export default {
     updateCourseInfo,
     deleteTutorSertificate,
     editTutorSertificateTitle,
-    editTeacherInfo
+    editTeacherInfo,
+    getCenterStatus,
+    getSessionCourse,
+    getCourseApplicationCount,
+    changeStatusToHold
 }
