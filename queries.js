@@ -40,7 +40,7 @@ let stuffEmails = [
     'alexdrumm13@gmail.com',
     'oilanabaz7@gmail.com',
     'ardakova97@inbox.ru',
-    'zznnznzn3@gmail.com'
+    'zznnznzn3@gmail.com',
 ]
 
 const setNumbersToCenters = () => {
@@ -3499,7 +3499,7 @@ const createCourseSearchTicket = async (request, response) => {
     let nameForMindsales = `Заявка на поиск курса. ${name}`;
     let phoneForMindsales = phone.replace(/[(]/, '').replace(/[)]/, '').replace(/-/g, '');
 
-    // createTicketInMindsales(nameForMindsales, phoneForMindsales, email, directionName, price, message);
+    createTicketInMindsales(nameForMindsales, phoneForMindsales, email, directionName, price, message);
 
     response.status(200).json({uuid: uuidString});
 }
