@@ -492,6 +492,43 @@ const createTicketInMindsales = (clientName, clientPhone, clientMail, clientDire
         .catch(response => console.log('Deal was not created in Mindsales. ' + clientPhone));
 }
 
+const createLowTicketInMindsales = (clientName, clientPhone) => {
+    let data = {
+        "data": [
+            {
+                "clientSourceId": 1,
+                "clientManagerId": null,
+                "phones": [
+                    clientPhone
+                ],
+                "clientFields": [
+                    {
+                        "id": 1,
+                        "value": clientName
+                    },
+                ],
+                "createDealIfExistsClient": true,
+                "deals": [
+                    {
+                        "dealFunnelStepId": 1,
+                        "dealStatusId": 1,
+                        "dealFields": [
+                            {
+                                "id": 1,
+                                "value": "Сумма"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+
+    axios.post('https://ms5ct.mindsales.kz/api/abaz/492f8134663308d9347fe6bceabb6ae0/addclientsdeals', data)
+        .then(response => console.log('Deal created in Mindsales. ' + clientName))
+        .catch(response => console.log('Deal was not created in Mindsales. ' + clientPhone));
+}
+
 const foo = () => {
 
     let applications = [
@@ -3353,6 +3390,36 @@ async function getCenterSubscriptionInfo(center_id){
     })
 }
 
+const createCourseSearchLowTicket = async (request, response) => {
+    const {
+        name,
+        phone,
+        connection
+    } = request.body;
+
+    await pool.query(`INSERT INTO public.course_low_tickets(user_name, phone, connection) VALUES ($1, $2, $3)`,
+        [
+            name,
+            phone,
+            connection
+        ],
+        async (error, results) => {
+            if (error) {
+                throw error
+            }
+            const mailMessageForSubscribed = `Имя пользователя: ${name}.\nТелефон: ${phone}.\nПредпочитаемый способ связи: ${connection === 0 ? "Звонок" : "Whatsapp"}`;
+
+            sendEmail(stuffEmails, `Oilan. Новая заявка!`, mailMessageForSubscribed);
+
+            const nameForMindsales = `Заявка на поиск курса. ${name}`;
+            const phoneForMindsales = phone.replace(/[(]/, '').replace(/[)]/, '').replace(/-/g, '');
+
+            createLowTicketInMindsales(nameForMindsales, phoneForMindsales);
+            response.status(200).json(true);
+        }
+    )
+};
+
 const createCourseSearchTicket = async (request, response) => {
     const {
         city_id,
@@ -3454,15 +3521,6 @@ const createCourseSearchTicket = async (request, response) => {
     let directionName = "";
     let cityName = "";
 
-    // await pool.query(`select name from cities where id=${city_id}`,
-    //     async (error, сitiesResult) => {
-    //         if (error) {
-    //             throw error
-    //         }
-    //         console.log(сitiesResult.rows);
-    //     }
-    // )
-
     await pool.query(`select name from course_categories where id=${direction_id}`,
         async (error, categoriesResult) => {
             if (error) {
@@ -3496,10 +3554,10 @@ const createCourseSearchTicket = async (request, response) => {
         }
     )
 
-    let nameForMindsales = `Заявка на поиск курса. ${name}`;
-    let phoneForMindsales = phone.replace(/[(]/, '').replace(/[)]/, '').replace(/-/g, '');
+    // let nameForMindsales = `Заявка на поиск курса. ${name}`;
+    // let phoneForMindsales = phone.replace(/[(]/, '').replace(/[)]/, '').replace(/-/g, '');
 
-    createTicketInMindsales(nameForMindsales, phoneForMindsales, email, directionName, price, message);
+    // // createTicketInMindsales(nameForMindsales, phoneForMindsales, email, directionName, price, message);
 
     response.status(200).json({uuid: uuidString});
 }
@@ -4214,6 +4272,8 @@ const createTutorSertificate = (request, response) => {
         id, title, tutor_id, img_src
     } = request.body;
 
+    console.log();
+
     pool.query('INSERT INTO public.tutor_sertificates (id, title, tutor_id, img_src) VALUES ($1, $2, $3, $4)', [id, title, tutor_id, img_src], (error, result) => {
         if (error) {
             response.status(500).send("error");
@@ -4704,6 +4764,7 @@ export default {
     archiveCard,
     courseCardsWithPagination,
     createCourseSearchTicket,
+    createCourseSearchLowTicket,
     createTechSupportTicket,
     checkCourseNotification,
     getCourseNotification,
