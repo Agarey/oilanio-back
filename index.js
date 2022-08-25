@@ -61,6 +61,7 @@ app.put('/clients/:id', db.updateClient)
 app.delete('/clients/:id', db.deleteClient)
 app.get('/teachers', db.getTeachers)
 app.get('/teachers/:id', db.getTeacherById)
+app.get('/getCities', db.getCities)
 app.post('/teachers', db.createTeacher)
 app.post('/teachers/:id', db.getCourseTeachers)
 app.post('/createTutorSertificate', db.createTutorSertificate)
@@ -116,7 +117,7 @@ app.post('/createCourseTeacher', roleMiddleware([4 || "4", 1 || "1"]), db.create
 app.get('/filters', db.getFilters);
 app.post('/getFilteredCategories', db.getFilteredCategories);
 app.post('/registerTelegramUser', db.registerTelegramUser)
-app.post('/courseCategories', db.getCourseCategories);
+app.get('/courseCategories', db.getCourseCategories);
 app.post('/courseCategory', db.getCourseCategory);
 app.post('/crmCourseCategories', db.getCrmCourseCategories);
 app.post('/sendEditCard', roleMiddleware([4, 1]), db.sendEditCard)
