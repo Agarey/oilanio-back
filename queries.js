@@ -2005,9 +2005,10 @@ const createHelpRequest = async (request, response) => {
 
 //----------------------------------------------------------
 
-const courseCardsFilter = (request, response) => {
-    const { centerName, city, direction, price, center, isOnline, sortType} = request.body;
+const courseCardsFilter = async (request, response) => {
+    const { centerName, city, direction, priceFrom, priceTo, center, isOnline, sortType } = request.body;
 
+    console.log("Front2", request.body);
     console.log("sort type: " + sortType);
 
     let whereAdded = false;
@@ -2057,7 +2058,7 @@ const courseCardsFilter = (request, response) => {
         queryText += `(lower(courses.title) like '%${centerName.toLowerCase()}%' or lower(courses.title) like '${centerName.toLowerCase()}%' or lower(courses.title) like '%${centerName.toLowerCase()}' or lower(courses.title) like '${centerName.toLowerCase()}')`;
     }
 
-    if(price !== '0'){
+    if(priceFrom !== 0 || priceTo !== 0 || priceFrom !== "" || priceTo !== "") {
         if(whereAdded){
             queryText += " and ";
         }else{
@@ -2065,25 +2066,10 @@ const courseCardsFilter = (request, response) => {
             queryText += " where ";
         }
 
-        switch(price){
-            case "0-20000":
-                queryText += "(subcourses.price >= 0 and subcourses.price <= 20000)";
-                break;
-            case "20000-40000":
-                queryText += "(subcourses.price >= 20000 and subcourses.price <= 40000)";
-                break;
-            case "40000-60000":
-                queryText += "(subcourses.price >= 40000 and subcourses.price <= 60000)";
-                break;
-            case "60000-80000":
-                queryText += "(subcourses.price >= 60000 and subcourses.price <= 80000)";
-                break;
-            case "80000-100000":
-                queryText += "(subcourses.price >= 80000 and subcourses.price <= 100000)";
-                break;
-            case "100000":
-                queryText += "subcourses.price >= 100000";
-                break;
+        if (priceTo === 0 || priceTo === "0") {
+            queryText += `(subcourses.price >= ${priceFrom})`;
+        } else {
+            queryText += `(subcourses.price >= ${priceFrom} and subcourses.price <= ${priceTo})`;
         }
     }
 
@@ -2169,7 +2155,7 @@ const tutorCourseCardsFilter = (request, response) => {
             queryText += " where ";
         }
 
-        queryText += "tutor_coursecards.category_id=" + direction;
+        queryText += "tutor_coursecards.category_id in (" + direction + ")";
     }
 
     if(centerName.replace(/ /g, '').length > 0){
@@ -2192,7 +2178,7 @@ const tutorCourseCardsFilter = (request, response) => {
         queryText += "tutor_coursecards.tutor_id=" + center;
     }
 
-    if(price !== '0'){
+    if(priceFrom !== "0" || priceTo !== "0" || priceFrom || priceTo ){
         if(whereAdded){
             queryText += " and ";
         }else{
@@ -2200,25 +2186,10 @@ const tutorCourseCardsFilter = (request, response) => {
             queryText += " where ";
         }
 
-        switch(price){
-            case "0-20000":
-                queryText += "(tutor_coursecards.price >= 0 and tutor_coursecards.price <= 20000)";
-                break;
-            case "20000-40000":
-                queryText += "(tutor_coursecards.price >= 20000 and tutor_coursecards.price <= 40000)";
-                break;
-            case "40000-60000":
-                queryText += "(tutor_coursecards.price >= 40000 and tutor_coursecards.price <= 60000)";
-                break;
-            case "60000-80000":
-                queryText += "(tutor_coursecards.price >= 60000 and tutor_coursecards.price <= 80000)";
-                break;
-            case "80000-100000":
-                queryText += "(tutor_coursecards.price >= 80000 and tutor_coursecards.price <= 100000)";
-                break;
-            case "100000":
-                queryText += "tutor_coursecards.price >= 100000";
-                break;
+        if (priceTo === 0 || priceTo === "0") {
+            queryText += `(tutor_coursecards.price >= ${priceFrom})`;
+        } else {
+            queryText += `(tutor_coursecards.price >= ${priceFrom} and tutor_coursecards.price <= ${priceTo})`;
         }
     }
 
@@ -2540,7 +2511,7 @@ const getFilteredCategories = (request, response) => {
 
     if(searchingCenter){
         query = `
-        select course_categories.id, name from subcourses
+        select course_categories.id, course_categories.name, course_categories.parent from subcourses
         join course_categories on course_categories.id=category_id
         join courses on courses.id = subcourses.course_id
         where subcourses.approved=true and declined=false and is_archived=false
@@ -2548,7 +2519,7 @@ const getFilteredCategories = (request, response) => {
     `
     }else{
         query = `
-        select course_categories.id, name from tutor_coursecards
+        select course_categories.id, course_categories.name, course_categories.parent from tutor_coursecards
         join course_categories on course_categories.id=category_id
         join tutors on tutors.id = tutor_coursecards.id
         group by course_categories.id, name
@@ -2623,19 +2594,38 @@ const registerTelegramUser = (request, response) => {
     response.status(200).send(responseMessage);
 }
 
+// const getCourseCategories = (request, response) => {
+//     pool.query('SELECT * FROM course_categories',  (error, results) => {
+//         if (error) {
+//             throw error
+//         }
+//         response.status(200).json(results.rows)
+//     })
+// }
+
 const getCourseCategories = (request, response) => {
     pool.query('SELECT * FROM course_categories order by name asc',  (error, results) => {
         if (error) {
             throw error
         }
-        response.status(200).json(results.rows)
+        response.status(200).json(results.rows);
+    })
+}
+
+const getCities = (request, response) => {
+    pool.query('SELECT * FROM cities order by name asc', (error, results) => {
+        if (error) {
+            response.status(500).json('error');
+        }else {
+            response.status(200).json(results.rows);
+        }
     })
 }
 
 const getCourseCategory = (request, response) => {
     const { id } = request.body;
 
-    pool.query('SELECT * FROM course_categories where id=$1', [id], (error, results) => {
+    pool.query('SELECT * FROM course_categories where id=$1', [id], (error, results)=> {
         if (error) {
             throw error
         }
@@ -4901,5 +4891,6 @@ export default {
     getCenterStatus,
     getSessionCourse,
     getCourseApplicationCount,
-    changeStatusToHold
+    changeStatusToHold,
+    getCities
 }
