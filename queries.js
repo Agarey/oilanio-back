@@ -2114,7 +2114,7 @@ const courseCardsFilter = async (request, response) => {
 }
 
 const tutorCourseCardsFilter = (request, response) => {
-    const { centerName, city, direction, price, center, isOnline} = request.body;
+    const { centerName, city, direction, priceFrom, priceTo, center, isOnline} = request.body;
 
     console.log(request.body);
 
