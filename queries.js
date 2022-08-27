@@ -1423,16 +1423,6 @@ const getCourseCardById = (request, response) => {
     })
 }
 
-const getCities = (request, response) => {
-    pool.query('SELECT * FROM cities order by name asc', (error, results) => {
-        if (error) {
-            response.status(500).json('error')
-        }else {
-            response.status(200).json(results.rows)
-        }
-    })
-}
-
 const getCourseCardsByCategoryId = (request, response) => {
     const categoryId = parseInt(request.params.categoryId)
 
@@ -4892,5 +4882,4 @@ export default {
     getSessionCourse,
     getCourseApplicationCount,
     changeStatusToHold,
-    getCities
 }
