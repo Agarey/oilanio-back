@@ -1218,23 +1218,46 @@ const getCourseCardsByCenterId = (request, response) => {
 }
 
 const getTutorCoursecards = (request, response) => {
+    pool.query('SELECT tutor_coursecards.id, tutors.img_src, tutor_coursecards.tutor_id as "tutorsId",  tutor_coursecards.min_age as "min_age", tutor_coursecards.max_age as "max_age", course_categories.name as "courseCategory", tutor_coursecards.is_online, tutor_coursecards.title,\n' +
+    '        cities.name as "city", tutor_coursecards.currency, tutor_coursecards.unit_of_time,\n' +
+    '        tutor_coursecards.category_id as "direction_id",\n' +
+    '        tutor_coursecards.price, tutor_coursecards.schedule,\n' +
+    '        tutor_coursecards.expecting_results, tutors.description as "tutorDescription", tutor_coursecards.start_requirements,\n' +
+    '        tutor_coursecards.duration_value as "duration_value", tutor_coursecards.duration_word as "duration_word", tutor_coursecards.verificated,\n' +
+    '        tutors.fullname as "tutorsName", tutors.teaching_language, tutors.can_work_on_departure as "canWorkOnDeparture", tutors.phone_number,\n' +
+    '        tutors.city_id\n' +
+    '        from tutor_coursecards\n' +
+    '        inner join tutors on tutor_coursecards.tutor_id = tutors.id\n' +
+    '        inner join cities on tutors.city_id = cities.id\n' +
+    '        inner join course_categories on tutor_coursecards.category_id = course_categories.id\n' +
+    //'        where tutor_coursecards.approved=true and tutor_coursecards.is_archived=false and\n' +
+    //'        tutor_coursecards.declined=false and city_id is not null\n' +
+    //'        and category_id is not null\n' +
+    //'        order by tutor_coursecards.verificated desc, order_coefficient asc', 
+    [], (error, results) => {
+    if (error) {
+        throw error
+    }
+    response.status(200).json(results.rows)
+})
 
-    const query = 'SELECT tutor_coursecards.id, tutors.fullname as "tutorsName", tutor_coursecards.tutor_id as "tutorsId", tutors.img_src, \n' + 
-                  'tutor_coursecards.schedule, tutor_coursecards.price, tutor_coursecards.currency, tutor_coursecards.unit_of_time, \n' +
-                  'tutor_coursecards.title, course_categories.name as "courseCategory", tutor_coursecards.is_online, \n' +
-                  'tutors.teaching_language, tutor_coursecards.min_age, tutor_coursecards.max_age, tutors.description as "tutorDescription", \n' +
-                  'tutor_coursecards.start_requirements, tutor_coursecards.expecting_results, tutor_coursecards.verificated, \n' + 
-                  'tutor_coursecards.category_id from tutor_coursecards \n' +
-                  'inner join tutors on tutor_coursecards.tutor_id = tutors.id \n' +
-                  'inner join course_categories on tutor_coursecards.category_id = course_categories.id'
+    // const query = 'SELECT tutor_coursecards.id, tutors.fullname as "tutorsName", tutor_coursecards.tutor_id as "tutorsId", tutors.img_src, \n' + 
+    //               'tutor_coursecards.schedule, cities.name as \"city_name\", tutor_coursecards.price, tutor_coursecards.currency, tutor_coursecards.unit_of_time, \n' +
+    //               'tutor_coursecards.title, course_categories.name as "courseCategory", tutor_coursecards.is_online, \n' +
+    //               'tutors.teaching_language, tutor_coursecards.min_age, tutor_coursecards.max_age, tutors.description as "tutorDescription", \n' +
+    //               'tutor_coursecards.start_requirements, tutor_coursecards.expecting_results, tutor_coursecards.verificated, \n' + 
+    //               'tutor_coursecards.category_id from tutor_coursecards \n' +
+    //               'join cities on cities.id = tutors.city_id \n' +
+    //               'inner join tutors on tutor_coursecards.tutor_id = tutors.id \n' +
+    //               'inner join course_categories on tutor_coursecards.category_id = course_categories.id'
 
-    pool.query(query, [], (error, results) => {
-        if (error) {
-            console.log(error)
-            throw error
-        }
-        response.status(200).json(results.rows)
-    })
+    // pool.query(query, [], (error, results) => {
+    //     if (error) {
+    //         console.log(error)
+    //         throw error
+    //     }
+    //     response.status(200).json(results.rows)
+    // })
 }
 
 const getVerificatedTutorCoursecards = (request, response) => {
@@ -1343,12 +1366,14 @@ const updateTutorCoursePrice = (request, response) => {
 }
 
 const updateTutorCourseCategory = (request, response) => {
-    let {id, courseCategoryId} = request.body;
-    pool.query('update tutor_coursecards set category_id=$2 where id=$1', [id, courseCategoryId],
+    let {id, category_id} = request.body;
+    console.log("SOMETHIIIIIING>>>>>>>>>>>>>", category_id)
+    pool.query('update tutor_coursecards set category_id=$2 where id=$1', [id, category_id],
         (error, result) => {
             if (error) {
                 throw error
             }
+            console.log("SOMETHIIIIIING>>>>>>>>>>>>>", category_id)
         })
 }
 
@@ -2471,7 +2496,7 @@ const createCourseTeacher = (request, response) => {
         img_url,
         course_id
     } = request.body
-
+    console.log('backData',request.body)
     pool.query('INSERT INTO teachers (fullname, description, img_url, course_id, approved, declined) VALUES ($1, $2, $3, $4, $5, $6)', [fullname, description, img_url, course_id, false, false], (error, result) => {
         if (error) {
             throw error
@@ -4078,15 +4103,18 @@ const createPromotion = (request, response) => {
         selectedSubcourseId,
         selectedCategoryId,
         promotionText,
-        promotionDateTill
+        promotionDateTill,
+        course_id
     } = request.body;
-    pool.query(`insert into promotions(category_id, text, img_src, subcourse_id, date_till) values ($1, $2, $3, $4, $5)`,
+    console.log('THIS IS COURSE ID', course_id)
+    pool.query(`insert into promotions(category_id, text, img_src, subcourse_id, date_till, center_id) values ($1, $2, $3, $4, $5, $6)`,
         [
             selectedCategoryId,
             promotionText,
             '',
             selectedSubcourseId,
-            promotionDateTill
+            promotionDateTill,
+            course_id
         ],
         (error, result) => {
             if(error){
@@ -4118,6 +4146,23 @@ from course_categories where name != 'test'`,
         }
     )
 }
+
+// const getTutorsCardsStatistics = (request, response) => {
+//     pool.query(`select name, (select count(id) 
+// from tutor_coursecards 
+// where category_id = course_categories.id 
+// \tand title!='test')
+// from course_categories where name != 'test'`,
+//         (error, result) => {
+//             if(error){
+//                 console.log(error);
+//                 response.status(500).json('error');
+//             }else{
+//                 response.status(201).json(result.rows)
+//             }
+//         }
+//     )
+// }
 
 const getTutorsActiveCards = (request, response) => {
     pool.query(`select name, (select count(id) 
@@ -4257,12 +4302,35 @@ const createTutorCourseCard = (request, response) => {
         })
 }
 
+const createCity = (request, response) => {
+    const {
+        name,
+        id
+    } = request.body;
+
+    pool.query(`INSERT INTO cities(
+        name,
+        id
+        ) values(
+        $1, $2 )`,
+        [
+            name,
+            id
+        ], (error, result) => {
+            if (error) {
+                throw error
+            }
+            console.log(result);
+            response.status(201).send(`city added with ID: ${result.insertId}`);
+    })
+}
+
+
+
 const createTutorSertificate = (request, response) => {
     const {
         id, title, tutor_id, img_src
     } = request.body;
-
-    console.log();
 
     pool.query('INSERT INTO public.tutor_sertificates (id, title, tutor_id, img_src) VALUES ($1, $2, $3, $4)', [id, title, tutor_id, img_src], (error, result) => {
         if (error) {
@@ -4760,6 +4828,7 @@ export default {
     getCourseNotification,
     createCourseNotification,
     createTutorSertificate,
+    createCity,
     filterCallCenterRows,
     deleteCourseTeacher,
     deleteCourseCard,
