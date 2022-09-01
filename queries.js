@@ -510,7 +510,7 @@ const createLowTicketInMindsales = (clientName, clientPhone) => {
                 "createDealIfExistsClient": true,
                 "deals": [
                     {
-                        "dealFunnelStepId": 1,
+                        "dealFunnelStepId": 22,
                         "dealStatusId": 1,
                         "dealFields": [
                             {
