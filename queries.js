@@ -1218,46 +1218,23 @@ const getCourseCardsByCenterId = (request, response) => {
 }
 
 const getTutorCoursecards = (request, response) => {
-    pool.query('SELECT tutor_coursecards.id, tutors.img_src, tutor_coursecards.tutor_id as "tutorsId",  tutor_coursecards.min_age as "min_age", tutor_coursecards.max_age as "max_age", course_categories.name as "courseCategory", tutor_coursecards.is_online, tutor_coursecards.title,\n' +
-    '        cities.name as "city", tutor_coursecards.currency, tutor_coursecards.unit_of_time,\n' +
-    '        tutor_coursecards.category_id as "direction_id",\n' +
-    '        tutor_coursecards.price, tutor_coursecards.schedule,\n' +
-    '        tutor_coursecards.expecting_results, tutors.description as "tutorDescription", tutor_coursecards.start_requirements,\n' +
-    '        tutor_coursecards.duration_value as "duration_value", tutor_coursecards.duration_word as "duration_word", tutor_coursecards.verificated,\n' +
-    '        tutors.fullname as "tutorsName", tutors.teaching_language, tutors.can_work_on_departure as "canWorkOnDeparture", tutors.phone_number,\n' +
-    '        tutors.city_id\n' +
-    '        from tutor_coursecards\n' +
-    '        inner join tutors on tutor_coursecards.tutor_id = tutors.id\n' +
-    '        inner join cities on tutors.city_id = cities.id\n' +
-    '        inner join course_categories on tutor_coursecards.category_id = course_categories.id\n' +
-    //'        where tutor_coursecards.approved=true and tutor_coursecards.is_archived=false and\n' +
-    //'        tutor_coursecards.declined=false and city_id is not null\n' +
-    //'        and category_id is not null\n' +
-    //'        order by tutor_coursecards.verificated desc, order_coefficient asc', 
-    [], (error, results) => {
-    if (error) {
-        throw error
-    }
-    response.status(200).json(results.rows)
-})
 
-    // const query = 'SELECT tutor_coursecards.id, tutors.fullname as "tutorsName", tutor_coursecards.tutor_id as "tutorsId", tutors.img_src, \n' + 
-    //               'tutor_coursecards.schedule, cities.name as \"city_name\", tutor_coursecards.price, tutor_coursecards.currency, tutor_coursecards.unit_of_time, \n' +
-    //               'tutor_coursecards.title, course_categories.name as "courseCategory", tutor_coursecards.is_online, \n' +
-    //               'tutors.teaching_language, tutor_coursecards.min_age, tutor_coursecards.max_age, tutors.description as "tutorDescription", \n' +
-    //               'tutor_coursecards.start_requirements, tutor_coursecards.expecting_results, tutor_coursecards.verificated, \n' + 
-    //               'tutor_coursecards.category_id from tutor_coursecards \n' +
-    //               'join cities on cities.id = tutors.city_id \n' +
-    //               'inner join tutors on tutor_coursecards.tutor_id = tutors.id \n' +
-    //               'inner join course_categories on tutor_coursecards.category_id = course_categories.id'
+    const query = 'SELECT tutor_coursecards.id, tutors.fullname as "tutorsName", tutor_coursecards.tutor_id as "tutorsId", tutors.img_src, \n' + 
+                  'tutor_coursecards.schedule, tutor_coursecards.price, tutor_coursecards.currency, tutor_coursecards.unit_of_time, \n' +
+                  'tutor_coursecards.title, course_categories.name as "courseCategory", tutor_coursecards.is_online, \n' +
+                  'tutors.teaching_language, tutor_coursecards.min_age, tutor_coursecards.max_age, tutors.description as "tutorDescription", \n' +
+                  'tutor_coursecards.start_requirements, tutor_coursecards.expecting_results, tutor_coursecards.verificated, \n' + 
+                  'tutor_coursecards.category_id from tutor_coursecards \n' +
+                  'inner join tutors on tutor_coursecards.tutor_id = tutors.id \n' +
+                  'inner join course_categories on tutor_coursecards.category_id = course_categories.id'
 
-    // pool.query(query, [], (error, results) => {
-    //     if (error) {
-    //         console.log(error)
-    //         throw error
-    //     }
-    //     response.status(200).json(results.rows)
-    // })
+    pool.query(query, [], (error, results) => {
+        if (error) {
+            console.log(error)
+            throw error
+        }
+        response.status(200).json(results.rows)
+    })
 }
 
 const getVerificatedTutorCoursecards = (request, response) => {
@@ -2609,14 +2586,14 @@ const registerTelegramUser = (request, response) => {
     response.status(200).send(responseMessage);
 }
 
-// const getCourseCategories = (request, response) => {
-//     pool.query('SELECT * FROM course_categories',  (error, results) => {
-//         if (error) {
-//             throw error
-//         }
-//         response.status(200).json(results.rows)
-//     })
-// }
+const courseCategories = (request, response) => {
+    pool.query('SELECT * FROM course_categories',  (error, results) => {
+        if (error) {
+            throw error
+        }
+        response.status(200).json(results.rows)
+    })
+}
 
 const getCourseCategories = (request, response) => {
     pool.query('SELECT * FROM course_categories order by name asc',  (error, results) => {
@@ -4828,7 +4805,6 @@ export default {
     getCourseNotification,
     createCourseNotification,
     createTutorSertificate,
-    createCity,
     filterCallCenterRows,
     deleteCourseTeacher,
     deleteCourseCard,
@@ -4951,4 +4927,5 @@ export default {
     getSessionCourse,
     getCourseApplicationCount,
     changeStatusToHold,
+    courseCategories
 }
