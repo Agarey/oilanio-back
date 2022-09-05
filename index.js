@@ -214,6 +214,8 @@ app.get('/getCourseApplicationCount', db.getCourseApplicationCount)
 app.post('/changeStatusToHold', db.changeStatusToHold)
 app.post('/createCourseSearchLowTicket', db.createCourseSearchLowTicket)
 app.get('/getCities', db.getCities)
+app.post('/createDetailTickets', db.createDetailTickets)
+app.get('/getTicketId', db.getTicketId);
 
 let devPublicRoute = "dev\\goco-backend\\public";
 let productionPublicRoute = "/root/goco-backend/public";

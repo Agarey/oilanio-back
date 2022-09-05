@@ -35,12 +35,10 @@ const Pool = pg.Pool
 const pool = new Pool(productionPoolOptions);
 
 let stuffEmails = [
-    'zane.css34@gmail.com',
     'azat.aliaskar@gmail.com',
     'alexdrumm13@gmail.com',
     'oilanabaz7@gmail.com',
-    'ardakova97@inbox.ru',
-    'zznnznzn3@gmail.com',
+    'zznnznzn3@gmail.com'
 ]
 
 const setNumbersToCenters = () => {
@@ -1487,7 +1485,7 @@ const sendEmailByReferenceId = (reference_id, verificationCode) => {
             secure: true,
             auth: {
                 user: 'oilanedu@gmail.com',
-                pass: 'dyvldkxooosevhon'
+                pass: 'fvkfoycauxwqpmfz'
             }
         });
 
@@ -1814,7 +1812,7 @@ const handleNewStudent = (request, response) => {
             secure: true,
             auth: {
                 user: 'oilanedu@gmail.com',
-                pass: 'dyvldkxooosevhon'
+                pass: 'fvkfoycauxwqpmfz'
             }
         });
 
@@ -3346,7 +3344,7 @@ const sendEmail = async (emailsTo, title, message) => {
         pool: true,
         auth: {
             user: 'oilanedu@gmail.com',
-            pass: 'dyvldkxooosevhon'
+            pass: 'fvkfoycauxwqpmfz'
         }
     });
 
@@ -4160,11 +4158,13 @@ from course_categories where name != 'test'`,
 
 const getTutorInfo = (request, response) => {
     const id = parseInt(request.params.id)
+    console.log(parseInt(request.params.id));
 
     pool.query('SELECT * FROM tutors WHERE id = $1', [id], (error, results) => {
         if (error) {
             response.status(500).json('error')
         }else {
+            console.log(results);
             response.status(200).json(results.rows[0])
         }
     })
@@ -4751,6 +4751,66 @@ const changeStatusToHold = (request, response) => {
     );
 };
 
+const getTicketId = (request, response) => {
+    const {
+        name,
+        phone
+    } = request.query;
+    // console.log(request);
+    pool.query(`SELECT id FROM public.course_low_tickets WHERE course_low_tickets.user_name=$1 and course_low_tickets.phone=$2`, [
+        name,
+        phone
+    ], (error, result) => {
+        if(error){
+            response.status(500).send('error');
+        }else{
+            console.log(result);
+            response.status(200).json(result.rows);
+        }
+    });
+}
+
+const createDetailTickets = async (request, response) => {
+    const {
+        id,
+        name,
+        phone,
+        connection,
+        goal,
+        price,
+        connectionLanguage,
+        infoVar,
+        language,
+        online,
+        offline,
+        typeClass
+      } = request.body;
+
+    await pool.query(`INSERT INTO public.detail_ticket_info(connection_language, user_name, phone, price, goal, language, online, offline, class_type, datetime, ticket_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, current_timestamp, $10)`,
+        [
+            connectionLanguage,
+            name,
+            phone,
+            price,
+            goal,
+            language,
+            online,
+            offline,
+            typeClass,
+            id
+        ],
+        async (error, results) => {
+            if (error) {
+                throw error
+            }
+            const mailMessageForSubscribed = `\nТелефон: ${phone}.\nПредпочитаемый способ связи: ${connection === 0 ? "Звонок" : "Whatsapp"}.\nЯзык общения: ${connectionLanguage}.\nДля чего нужен курс: ${goal}.\nЦена: ${price}.\nЯзык преподавания: ${language}.\nФормат преподавания: ${online ? "Online" : "Offline"}.\nТип занятий: ${typeClass}.`;
+
+            sendEmail(stuffEmails, `Oilan. Детальная информация к заявке от имени:${name}`, mailMessageForSubscribed);
+            response.status(200).json(true);
+        }
+    )
+}
+
 export default {
     getPartners,
     getFilteredCategories,
@@ -4927,5 +4987,7 @@ export default {
     getSessionCourse,
     getCourseApplicationCount,
     changeStatusToHold,
-    courseCategories
+    courseCategories,
+    createDetailTickets,
+    getTicketId
 }
