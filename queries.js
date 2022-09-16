@@ -1951,12 +1951,12 @@ const handleNewStudent = (request, response) => {
 //----------------------------------------------------------
 
 const createCallRequest = (request, response) => {
-    const { phone } = request.body;
-    let currentDate = moment().format();
+    const { phone, name } = request.body;
+    const currentDate = moment().format();
 
     //sendCallRequestNotification({phone: phone, currentDate: moment().format('LLLL')});
 
-    pool.query('INSERT INTO call_requests (phone, date) VALUES ($1, $2)', [phone, currentDate], (error, result) => {
+    pool.query('INSERT INTO call_requests (phone, date, user_name) VALUES ($1, $2, $3)', [phone, currentDate, name], (error, result) => {
         if (error) {
             throw error
         }
@@ -1968,7 +1968,7 @@ const createCallRequest = (request, response) => {
         createDealInMindsales(nameForMindsales, phoneForMindsales);
     });
 
-    sendEmail(stuffEmails, 'У клиента появился вопрос!', 'Номер клиента: ' + phone);
+    sendEmail(stuffEmails, 'У клиента появился вопрос!', `Имя клиента: ${name}\nНомер клиента: ${phone}`);
 }
 
 //----------------------------------------------------------
@@ -2003,7 +2003,7 @@ const courseCardsFilter = async (request, response) => {
 
     let whereAdded = false;
 
-    let queryText = "SELECT subcourses.id, subcourses.category_id, courses.city_id, courses.promocode, subcourses.title, subcourses.currency, subcourses.unit_of_time, subcourses.description, subcourses.ages, subcourses.type, subcourses.format, subcourses.price, subcourses.schedule, subcourses.verificated, subcourses.expected_result, subcourses.start_requirements, subcourses.duration, subcourses.rating, courses.id as \"course_id\", courses.title as \"course_title\", courses.url, courses.addresses, courses.phones, courses.instagram, courses.website_url, courses.latitude, courses.longitude, courses.img_src, courses.background_image_url from subcourses inner join courses on subcourses.course_id = courses.id";
+    let queryText = "SELECT subcourses.id, subcourses.category_id, courses.city_id, courses.promocode, subcourses.title, subcourses.currency, subcourses.unit_of_time, subcourses.description, subcourses.ages, subcourses.type, subcourses.format, subcourses.price, subcourses.schedule, subcourses.verificated, subcourses.expected_result, subcourses.start_requirements, subcourses.duration, subcourses.rating, cities.name as \"city_name\", courses.id as \"course_id\", courses.title as \"course_title\", courses.url, courses.addresses, courses.phones, courses.instagram, courses.website_url, courses.latitude, courses.longitude, courses.img_src, courses.background_image_url from subcourses inner join courses on subcourses.course_id = courses.id join cities on cities.id = courses.city_id";
     if(city !== '0'){
         whereAdded = true;
         queryText += " where courses.city_id=" + city;
@@ -2038,16 +2038,19 @@ const courseCardsFilter = async (request, response) => {
         queryText += "subcourses.course_id=" + center;
     }
 
-    if(centerName.replace(/ /g, '').length > 0){
-        if(whereAdded){
-            queryText += " and ";
-        }else{
-            queryText += " where ";
+    if(centerName) {
+        if(centerName.replace(/ /g, '').length > 0){
+            if(whereAdded){
+                queryText += " and ";
+            }else{
+                queryText += " where ";
+            }
+
+            queryText += `(lower(courses.title) like '%${centerName.toLowerCase()}%' or lower(courses.title) like '${centerName.toLowerCase()}%' or lower(courses.title) like '%${centerName.toLowerCase()}' or lower(courses.title) like '${centerName.toLowerCase()}')`;
         }
 
-        queryText += `(lower(courses.title) like '%${centerName.toLowerCase()}%' or lower(courses.title) like '${centerName.toLowerCase()}%' or lower(courses.title) like '%${centerName.toLowerCase()}' or lower(courses.title) like '${centerName.toLowerCase()}')`;
     }
-
+    
     if(priceFrom !== 0 || priceTo !== 0 || priceFrom !== "" || priceTo !== "") {
         if(whereAdded){
             queryText += " and ";
