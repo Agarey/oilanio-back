@@ -1505,7 +1505,7 @@ const updateTutorDescription = (request, response) => {
 const getCourseCardById = (request, response) => {
     const subcourseId = parseInt(request.params.subcourseId)
 
-    pool.query('SELECT subcourses.id, subcourses.category_id as "direction_id", courses.city_id, subcourses.isonline, courses.website_url, subcourses.currency, subcourses.unit_of_time, subcourses.title, subcourses.description, subcourses.ages, subcourses.type, subcourses.format, subcourses.price, subcourses.schedule, subcourses.expected_result, subcourses.start_requirements, subcourses.duration, subcourses.rating, courses.id as "course_id", courses.title as "course_title", courses.phones, courses.instagram, courses.latitude, courses.longitude, courses.url, courses.img_src, courses.background_image_url from subcourses inner join courses on subcourses.course_id = courses.id where subcourses.id=$1 and subcourses.approved=true order by subcourses.title', [subcourseId], (error, results) => {
+    pool.query('SELECT subcourses.id, subcourses.category_id as "direction_id", courses.city_id, subcourses.isonline, subcourses.verificated, courses.website_url, cities.name as "city_name", subcourses.currency, subcourses.unit_of_time, subcourses.title, subcourses.description, subcourses.ages, subcourses.type, subcourses.format, subcourses.price, subcourses.schedule, subcourses.expected_result, subcourses.start_requirements, subcourses.duration, subcourses.rating, courses.id as "course_id", courses.title as "course_title", courses.phones, courses.instagram, courses.latitude, courses.longitude, courses.url, courses.img_src, courses.background_image_url from subcourses inner join courses on subcourses.course_id = courses.id inner join cities on city_id = cities.id where subcourses.id=$1 and subcourses.approved=true order by subcourses.title', [subcourseId], (error, results) => {
         if (error) {
             throw error
         }
@@ -4513,6 +4513,112 @@ const getTutorsCourseCardsById = (request, response) => {
     })
 }
 
+const getTutorSubcourses = (request, response) => {
+    const tutorId = parseInt(request.params.tutorId)
+
+    console.log("course id: " + tutorId);
+
+    pool.query('SELECT tutor_coursecards.id, tutor_id, tutor_coursecards.title as "title", tutors.fullname as "tutor_fullname", tutors.can_work_online, tutors.can_work_offline, tutors.can_work_on_departure, tutors.img_src, tutors.teaching_language, tutors.phone_number, tutors.url, tutor_coursecards.min_age, tutor_coursecards.max_age, price, schedule, duration_word, category_id, expecting_results, start_requirements, is_online, currency, unit_of_time, tutors.id as "tutor_id" FROM tutor_coursecards join tutors on tutor_coursecards.tutor_id = tutors.id WHERE tutor_id = $1 and tutor_coursecards.title!=$2', [tutorId, 'test'], (error, results) => {
+        if (error) {
+            throw error
+        }
+        response.status(200).json(results.rows)
+    })
+}
+
+const getTutorSertificatesByTutorId = (request, response) => {
+    const tutorId = parseInt(request.params.tutorId)
+
+    console.log("course id: " + tutorId);
+
+    pool.query('SELECT * FROM tutor_sertificates  WHERE tutor_id = $1', [tutorId], (error, results) => {
+        if (error) {
+            throw error
+        }
+        response.status(200).json(results.rows)
+    })
+}
+
+const getTutorCourseById = (request, response) => {
+    const id = parseInt(request.params.id);
+    console.log("course id: " + id);
+    pool.query('SELECT * FROM tutor_coursecards WHERE id = $1 and title NOT IN (\'test\')', [id], (error, results) => {
+        if (error) {
+            response.status(500).json('Не указан id курса')
+        }else{
+            response.status(200).json(results.rows)
+        }
+    })
+}
+
+const getTutorCourseCardById = (request, response) => {
+    const subcourseId = parseInt(request.params.subcourseId)
+    console.log('fff')
+    pool.query('SELECT tutor_coursecards.id, tutor_coursecards.category_id as "direction_id", tutors.city_id, tutor_coursecards.is_online, tutor_coursecards.verificated, tutors.teaching_language, cities.name as "city_name", tutors.address, tutor_coursecards.duration_value, tutors.description as "tutor_description", tutor_coursecards.currency, tutor_coursecards.unit_of_time, tutor_coursecards.title, tutor_coursecards.min_age, tutor_coursecards.max_age, tutor_coursecards.price, tutor_coursecards.schedule, tutor_coursecards.expecting_results, tutor_coursecards.start_requirements, tutor_coursecards.duration_word, tutors.id as "tutor_id", tutors.fullname as "tutor_fullname", tutors.phone_number, tutors.can_work_online, tutors.can_work_offline, tutors.can_work_on_departure, tutors.url, tutors.img_src from tutor_coursecards inner join tutors on tutor_coursecards.tutor_id = tutors.id inner join cities on city_id = cities.id where tutor_coursecards.id=$1 order by tutor_coursecards.id', [subcourseId], (error, results) => {
+        if (error) {
+            throw error
+        }
+        response.status(200).json(results.rows)
+    })
+}
+
+const getPromotionBySubcourse = (request, response) => {
+    const subcourseId = parseInt(request.params.subcourseId)
+    console.log('subcourseId',subcourseId)
+    pool.query('SELECT * from promotions where subcourse_id=$1', [subcourseId], (error, results) => {
+        if (error) {
+            throw error
+        }
+        response.status(200).json(results.rows)
+    })
+}
+
+const courseCardsFilterByCategory = async (request, response) => {
+    const { direction } = request.body;
+
+    let queryText = 'SELECT subcourses.id, subcourses.category_id, courses.city_id, cities.name as "city_name", courses.promocode, subcourses.title, subcourses.currency, subcourses.unit_of_time, subcourses.description, subcourses.ages, subcourses.type, subcourses.format, subcourses.price, subcourses.schedule, subcourses.verificated, subcourses.expected_result, subcourses.start_requirements, subcourses.duration, subcourses.rating, courses.id as \"course_id\", courses.title as \"course_title\", courses.url, courses.addresses, courses.phones, courses.instagram, courses.website_url, courses.latitude, courses.longitude, courses.img_src, courses.background_image_url from subcourses inner join courses on subcourses.course_id = courses.id inner join cities on courses.city_id = cities.id';
+
+    queryText += ' where subcourses.approved=true and subcourses.category_id in (' + direction + ')';
+
+    queryText += ' and subcourses.is_archived=false'
+
+    queryText += ' and subcourses.title != \'test\''
+
+    queryText += ` order by subcourses.verificated desc, order_coefficient`;
+
+    console.log("QUERY TEXT: " + queryText);
+
+    pool.query(queryText, [], (error, results) => {
+        if (error) {
+            throw error
+        }
+        response.status(200).json(results.rows);
+    })
+}
+
+const tutorCourseCardsFilterByCategory = async (request, response) => {
+    const { direction } = request.body;
+
+    let queryText = 'SELECT tutor_coursecards.id, tutor_coursecards.category_id, tutors.city_id, cities.name as "city_name", course_categories.name as "category_name", tutor_coursecards.title, tutor_coursecards.currency, tutor_coursecards.unit_of_time, tutor_coursecards.min_age, tutor_coursecards.max_age, tutor_coursecards.price, tutor_coursecards.schedule, tutor_coursecards.verificated, tutor_coursecards.expecting_results, tutor_coursecards.start_requirements, tutor_coursecards.duration_value, tutors.id as \"tutor_id\", tutors.fullname as \"tutor_fullname\", tutors.url, tutors.address, tutors.phone_number, tutors.teaching_language, tutors.img_src from tutor_coursecards inner join tutors on tutor_coursecards.tutor_id = tutors.id inner join cities on tutors.city_id = cities.id inner join course_categories on tutor_coursecards.category_id = course_categories.id';
+
+    queryText += ' where tutor_coursecards.category_id in (' + direction + ')';
+
+    queryText += ' and tutor_coursecards.is_archived=false'
+
+    queryText += ' and tutor_coursecards.title != \'test\''
+
+    queryText += ` order by tutor_coursecards.verificated desc, tutors.img_src asc`;
+
+    console.log("QUERY TEXT: " + queryText);
+
+    pool.query(queryText, [], (error, results) => {
+        if (error) {
+            throw error
+        }
+        response.status(200).json(results.rows);
+    })
+}
+
 const getTutorApplications = (request, response) => {
     const tutorId = parseInt(request.params.tutorId)
 
@@ -5088,5 +5194,12 @@ export default {
     changeStatusToHold,
     courseCategories,
     createDetailTickets,
-    getTicketId
+    getTicketId,
+    courseCardsFilterByCategory,
+    tutorCourseCardsFilterByCategory,
+    getTutorCourseCardById,
+    getTutorCourseById,
+    getTutorSubcourses,
+    getTutorSertificatesByTutorId,
+    getPromotionBySubcourse
 }

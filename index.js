@@ -217,7 +217,14 @@ app.post('/changeStatusToHold', db.changeStatusToHold)
 app.post('/createCourseSearchLowTicket', db.createCourseSearchLowTicket)
 app.get('/getCities', db.getCities)
 app.post('/createDetailTickets', db.createDetailTickets)
-app.get('/getTicketId', db.getTicketId);
+app.get('/getTicketId', db.getTicketId)
+app.get('/tutorCourses/:id', db.getTutorCourseById)
+app.post('/tutorSubcourses/:tutorId', db.getTutorSubcourses)
+app.post('/tutorSertificates/:tutorId', db.getTutorSertificatesByTutorId)
+app.post('/tutorCourseCards/:subcourseId', db.getTutorCourseCardById)
+app.get('/getPromotionBySubcourse/:subcourseId', db.getPromotionBySubcourse)
+app.post('/courseCardsFilterByCategory', db.courseCardsFilterByCategory)
+app.post('/tutorCourseCardsFilterByCategory', db.tutorCourseCardsFilterByCategory)
 
 let devPublicRoute = "dev\\goco-backend\\public";
 let productionPublicRoute = "/root/goco-backend/public";
