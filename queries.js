@@ -709,8 +709,20 @@ const getCourseSubcourses = (request, response) => {
 
     console.log("course id: " + courseId);
 
-    pool.query('SELECT subcourses.id, course_id, subcourses.title as "title", courses.title as "course_title", courses.website_url, courses.instagram, courses.img_src, courses.background_image_url, courses.phones, courses.url, subcourses.description as "subcourse_description", price, schedule, duration, subcourses.rating as "subcourses_rating", category_id, ages, format, expected_result, start_requirements, type, isonline, approved, declined, currency, unit_of_time, order_coefficient, published_date, courses.id as "course_id" FROM subcourses join courses on subcourses.course_id = courses.id WHERE course_id = $1 and approved=true and subcourses.title!=$2', [courseId, 'test'], (error, results) => {
+    pool.query('SELECT subcourses.id, course_id, cities.name as "city_name", subcourses.title as "title", courses.title as "course_title", courses.website_url, courses.instagram, courses.img_src, courses.background_image_url, courses.phones, courses.url, subcourses.description as "subcourse_description", price, schedule, duration, subcourses.rating as "subcourses_rating", category_id, ages, format, expected_result, start_requirements, type, isonline, approved, declined, currency, unit_of_time, course_categories.name as "category_name", order_coefficient, published_date, courses.id as "course_id" FROM subcourses join courses on subcourses.course_id = courses.id join course_categories on subcourses.category_id=course_categories.id join cities on courses.city_id=cities.id WHERE course_id = $1 and approved=true and subcourses.title!=$2', [courseId, 'test'], (error, results) => {
         if (error) {
+            throw error
+        }
+        response.status(200).json(results.rows)
+    })
+}
+
+const getFeedbacksByCourseId = (request, response) => {
+    const { course_id, target_role } = request.body
+    console.log("request", request)
+    pool.query('SELECT * FROM feedbacks where course_id = $1 and target_role = $2 ORDER BY id DESC', [course_id, target_role], (error, results) => {
+        if (error) {
+            
             throw error
         }
         response.status(200).json(results.rows)
@@ -915,9 +927,9 @@ const getCurrentDate = (monthOffset = 0) => {
 }
 
 const createFeedback = (request, response) => {
-    const { fullname, message, rating, subcourse_id } = request.body
+    const { fullname, message, rating, subcourse_id, course_id, target_role } = request.body
 
-    pool.query('INSERT INTO feedbacks (fullname, date, message, rating, subcourse_id) VALUES ($1, $2, $3, $4, $5)', [fullname, getCurrentDate(), message, rating, subcourse_id], (error, result) => {
+    pool.query('INSERT INTO feedbacks (fullname, date, message, rating, subcourse_id, course_id, target_role) VALUES ($1, $2, $3, $4, $5, $6, $7)', [fullname, getCurrentDate(), message, rating, subcourse_id, course_id, target_role], (error, result) => {
         if (error) {
             throw error
         }
@@ -5137,6 +5149,7 @@ export default {
     getFeedbacks,
     getFeedbackById,
     createFeedback,
+    getFeedbacksByCourseId,
     updateFeedback,
     deleteFeedback,
     getCourses,
