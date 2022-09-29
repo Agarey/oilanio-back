@@ -6,6 +6,7 @@ import {secret} from "./config.js"
 import {v4 as uuidv4} from 'uuid';
 import {Telegraf} from 'telegraf'
 import axios from 'axios';
+import { request, response } from 'express';
 moment.locale('ru');
 
 
@@ -4574,6 +4575,21 @@ const getTutorCourseCardById = (request, response) => {
     })
 }
 
+const getFilteredCities = (request, response) => {
+    const cityId = parseInt(request.params.cityId)
+    console.log(request)
+
+    console.log("cityId: " + cityId);
+
+    pool.query('SELECT * FROM cities  WHERE id=$1', [cityId], (error, results) => {
+        if (error) {
+            throw error
+        } else {
+            response.status(200).json(results.rows)
+        }
+    })
+}
+
 const getPromotionBySubcourse = (request, response) => {
     const subcourseId = parseInt(request.params.subcourseId)
     console.log('subcourseId',subcourseId)
@@ -5214,5 +5230,6 @@ export default {
     getTutorCourseById,
     getTutorSubcourses,
     getTutorSertificatesByTutorId,
+    getFilteredCities,
     getPromotionBySubcourse
 }
