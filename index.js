@@ -2,6 +2,7 @@ import express from 'express';
 import bodyParser from 'body-parser'
 const app = express()
 import db from './queries.js'
+import db_classroom from './queries-classroom.js';
 import cors from 'cors'
 import fs from"fs";
 import path from"path";
@@ -225,6 +226,7 @@ app.post('/tutorCourseCards/:subcourseId', db.getTutorCourseCardById)
 app.get('/getPromotionBySubcourse/:subcourseId', db.getPromotionBySubcourse)
 app.post('/courseCardsFilterByCategory', db.courseCardsFilterByCategory)
 app.post('/tutorCourseCardsFilterByCategory', db.tutorCourseCardsFilterByCategory)
+app.post('/createTicket', db_classroom.createTicket)
 
 let devPublicRoute = "dev\\goco-backend\\public";
 let productionPublicRoute = "/root/goco-backend/public";
@@ -280,7 +282,7 @@ app.post(
 
 
 
-let port = process.env.PORT;
+let port = 3030;
 
 app.listen(port, () => {
     console.log(`Goco backend running on port ${port}.`)
