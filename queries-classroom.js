@@ -1,11 +1,6 @@
 import pg from 'pg';
 import nodemailer from 'nodemailer';
 import moment from 'moment'
-// import jwt from 'jsonwebtoken'
-// import {secret} from "./config.js"
-// import {v4 as uuidv4} from 'uuid';
-// import {Telegraf} from 'telegraf'
-// import axios from 'axios';
 moment.locale('ru');
 
 const productionPoolOptions = {
@@ -21,11 +16,10 @@ const Pool = pg.Pool
 const pool = new Pool(productionPoolOptions);
 
 const stuffEmails = [
-  // 'azat.aliaskar@gmail.com',
-  // 'alexdrumm13@gmail.com',
-  // 'oilanabaz7@gmail.com',
-  // 'zznnznzn3@gmail.com'
-  'onggar.aigerim@gmail.com'
+  'azat.aliaskar@gmail.com',
+  'alexdrumm13@gmail.com',
+  'oilanabaz7@gmail.com',
+  'zznnznzn3@gmail.com'
 ];
 
 const sendEmail = async (emailsTo, title, message) => {
