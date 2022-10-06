@@ -1,6 +1,7 @@
 import pg from 'pg';
 import nodemailer from 'nodemailer';
 import moment from 'moment'
+import axios from 'axios';
 moment.locale('ru');
 
 const productionPoolOptions = {
@@ -52,6 +53,43 @@ const sendEmail = async (emailsTo, title, message) => {
   }
 };
 
+const createTicketInMindsales = (clientName, clientPhone) => {
+  let data = {
+    "data": [
+      {
+        "clientSourceId": 1,
+        "clientManagerId": null,
+        "phones": [
+          clientPhone
+        ],
+        "clientFields": [
+          {
+            "id": 1,
+            "value": clientName
+          },
+        ],
+        "createDealIfExistsClient": true,
+        "deals": [
+          {
+            "dealFunnelStepId": 22,
+            "dealStatusId": 1,
+            "dealFields": [
+              {
+                "id": 1,
+                "value": "Сумма"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+
+  axios.post('https://ms5ct.mindsales.kz/api/abaz/492f8134663308d9347fe6bceabb6ae0/addclientsdeals', data)
+    .then(response => console.log('Deal created in Mindsales. ' + clientName))
+    .catch(response => console.log('Deal was not created in Mindsales. ' + clientPhone));
+}
+
 const createTicket = async (request, response) => {
   const {
     fullname,
@@ -79,7 +117,12 @@ const createTicket = async (request, response) => {
 
       sendEmail(stuffEmails, `На курс "Математика простыми словами" поступила новая заявка.`, mailMessageForSubscribed);
 
+      const nameForMindsales = `Заявка на курс "Математика простыми словами". ${fullname}`;
+      const phoneForMindsales = phone.replace(/[(]/, '').replace(/[)]/, '').replace(/-/g, '');
+
+      createTicketInMindsales(nameForMindsales, phoneForMindsales);
       response.status(200).json(true);
+
     }
   )
 };
