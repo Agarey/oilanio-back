@@ -127,6 +127,17 @@ const createTicket = async (request, response) => {
   )
 };
 
+const getCaptcha = async (request, response) => {
+   pool.query('SELECT * FROM oc_captcha', (error, results) => {
+        if (error) {
+            throw error
+        }
+        console.log('captcha sent');
+        response.status(200).json(results.rows)
+    })
+}
+
 export default {
-  createTicket
+  createTicket,
+  getCaptcha
 };

@@ -228,7 +228,9 @@ app.post('/tutorCourseCards/:subcourseId', db.getTutorCourseCardById)
 app.get('/getPromotionBySubcourse/:subcourseId', db.getPromotionBySubcourse)
 app.post('/courseCardsFilterByCategory', db.courseCardsFilterByCategory)
 app.post('/tutorCourseCardsFilterByCategory', db.tutorCourseCardsFilterByCategory)
+
 app.post('/createTicket', db_classroom.createTicket)
+app.get('/getCaptcha', db_classroom.getCaptcha)
 
 let devPublicRoute = "dev\\goco-backend\\public";
 let productionPublicRoute = "/root/goco-backend/public";
@@ -284,7 +286,7 @@ app.post(
 
 
 
-let port = 3030;
+let port = process.env.PORT;
 
 app.listen(port, () => {
     console.log(`Goco backend running on port ${port}.`)
