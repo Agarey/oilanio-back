@@ -2,6 +2,7 @@ import pg from 'pg';
 import nodemailer from 'nodemailer';
 import moment from 'moment'
 import axios from 'axios';
+import { request, response } from 'express';
 moment.locale('ru');
 
 const productionPoolOptions = {
@@ -137,7 +138,33 @@ const getCaptcha = async (request, response) => {
     })
 }
 
+const getAllCaptchaId = async (request, response) => {
+  pool.query('SELECT id FROM oc_captcha', (error, results) => {
+       if (error) {
+           throw error
+       }
+       console.log('captcha sent');
+       response.status(200).json(results.rows)
+   })
+}
+
+const getCaptchaWithId = (request, response) => {
+  const id = parseInt(request.params.id);
+  console.log(id)
+
+  pool.query('SELECT * FROM oc_captcha where id=$1', [id], (error, results) => {
+      if (error) {
+          response.status(500).json('error');
+          console.error(error);
+      }else {
+          response.status(200).json(results.rows);
+      }
+  })
+}
+
 export default {
   createTicket,
-  getCaptcha
+  getCaptcha,
+  getAllCaptchaId,
+  getCaptchaWithId
 };

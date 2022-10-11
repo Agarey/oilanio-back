@@ -15,7 +15,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 app.use(cors())
 
-let whitelist = ['http://localhost:3000', 'https://www.oilan.io']
+let whitelist = ['http://localhost:3000', 'https://www.oilan.io', 'https://www.oilan-classroom.com']
 let corsOptions = {
     origin: function (origin, callback) {
         if (whitelist.indexOf(origin) !== -1) {
@@ -231,6 +231,8 @@ app.post('/tutorCourseCardsFilterByCategory', db.tutorCourseCardsFilterByCategor
 
 app.post('/createTicket', db_classroom.createTicket)
 app.get('/getCaptcha', db_classroom.getCaptcha)
+app.get('/getAllCaptchaId', db_classroom.getAllCaptchaId)
+app.post('/getCaptchaWithId/:id', db_classroom.getCaptchaWithId)
 
 let devPublicRoute = "dev\\goco-backend\\public";
 let productionPublicRoute = "/root/goco-backend/public";
