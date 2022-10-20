@@ -229,9 +229,9 @@ const createCourseSkill = (request, response) => {
 }
 
 const createCourseStage = (request, response) => {
-    const { stageText, stageOrder, stageCourseId } = request.body
+    const { stageTitle, stageText, stageOrder, stageCourseId } = request.body
 
-    pool.query('INSERT INTO oc_course_stages (text, stage_order, course_id) VALUES ($1, $2, $3)', [stageText, stageOrder, stageCourseId], (error, result) => {
+    pool.query('INSERT INTO oc_course_stages (title, text, stage_order, course_id) VALUES ($1, $2, $3, $4)', [stageTitle, stageText, stageOrder, stageCourseId], (error, result) => {
         if (error) {
             throw error
         }
@@ -386,6 +386,123 @@ const getRoles = async (request, response) => {
     })
 }
 
+const getCourseOC = (request, response) => {
+  // console.log(request)
+  const title = request.params.title;
+  console.log("title", title)
+  console.log("request.params", request.params.title)
+  
+
+  pool.query('SELECT * FROM oc_courses where url=$1', [title], (error, results) => {
+      if (error) {
+          response.status(500).json('error');
+          console.error(error);
+          
+      }else {
+          response.status(200).json(results.rows);
+          
+      }
+  })
+}
+
+const getCourseTargets = (request, response) => {
+  // console.log(request)
+  const id = parseInt(request.params.id);
+  
+
+  pool.query('SELECT * FROM oc_course_targets where course_id=$1', [id], (error, results) => {
+      if (error) {
+          response.status(500).json('error');
+          console.error(error);
+          
+      }else {
+          response.status(200).json(results.rows);
+          
+      }
+  })
+}
+
+const getCourseInfoBlocks = (request, response) => {
+  // console.log(request)
+  const id = parseInt(request.params.id);
+  
+
+  pool.query('SELECT * FROM oc_course_info_blocks where course_id=$1', [id], (error, results) => {
+      if (error) {
+          response.status(500).json('error');
+          console.error(error);
+          
+      }else {
+          response.status(200).json(results.rows);
+          
+      }
+  })
+}
+
+const getCourseSkills = (request, response) => {
+    // console.log(request)
+    const id = parseInt(request.params.id);
+  
+
+    pool.query('SELECT * FROM oc_course_skills where course_id=$1', [id], (error, results) => {
+        if (error) {
+            response.status(500).json('error');
+            console.error(error);
+            
+        }else {
+            response.status(200).json(results.rows);
+            
+        }
+    })
+}
+
+const getCourseStages = (request, response) => {
+  const id = parseInt(request.params.id);
+  
+    pool.query('SELECT * FROM oc_course_stages where course_id=$1', [id], (error, results) => {
+        if (error) {
+            response.status(500).json('error');
+            console.error(error);
+            
+        }else {
+            response.status(200).json(results.rows);
+            
+        }
+    })
+}
+
+const getProgramsById = (request, response) => {
+    // console.log(request)
+    const id = parseInt(request.params.id);
+  
+
+    pool.query('SELECT * FROM oc_programs where course_id=$1', [id], (error, results) => {
+        if (error) {
+            response.status(500).json('error');
+            console.error(error);
+            
+        }else {
+            response.status(200).json(results.rows);
+            
+        }
+    })
+}
+
+const getTeacherByCourse = (request, response) => {
+  const id = parseInt(request.params.id);
+
+  pool.query('SELECT * FROM oc_teachers where id=$1', [id], (error, results) => {
+      if (error) {
+          response.status(500).json('error');
+          console.error(error);
+          
+      }else {
+          response.status(200).json(results.rows);
+          
+      }
+  })
+}
+
 export default {
   createTicket,
   getCaptcha,
@@ -409,7 +526,15 @@ export default {
   getCategories,
   getCourses,
   getPrograms,
+  getProgramsById,
   getLessons,
   getStudents,
-  getRoles
+  getRoles,
+  getCourseOC,
+  getCourseTargets,
+  getCourseInfoBlocks,
+  getCourseSkills,
+  getCourseStages,
+  getPrograms,
+  getTeacherByCourse
 };
