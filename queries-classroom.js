@@ -505,6 +505,21 @@ const getTeacherByCourse = (request, response) => {
   })
 }
 
+const getSertificateByTeacherId = (request, response) => {
+    const id = parseInt(request.params.id);
+  
+    pool.query('SELECT * FROM oc_sertificates where teacher_id=$1', [id], (error, results) => {
+        if (error) {
+            response.status(500).json('error');
+            console.error(error);
+            
+        }else {
+            response.status(200).json(results.rows);
+            
+        }
+    })
+  }
+
 export default {
   createTicket,
   getCaptcha,
@@ -538,5 +553,6 @@ export default {
   getCourseSkills,
   getCourseStages,
   getPrograms,
-  getTeacherByCourse
+  getTeacherByCourse,
+  getSertificateByTeacherId
 };

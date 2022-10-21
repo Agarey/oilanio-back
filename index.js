@@ -262,6 +262,7 @@ app.post('/getCourseSkills/:id', db_classroom.getCourseSkills)
 app.post('/getCourseStages/:id', db_classroom.getCourseStages)
 app.post('/getPrograms/:id', db_classroom.getPrograms)
 app.post('/getTeacherByCourse/:id', db_classroom.getTeacherByCourse)
+app.post('/getSertificateByTeacherId/:id', db_classroom.getSertificateByTeacherId)
 
 let devPublicRoute = "dev\\goco-backend\\public";
 let productionPublicRoute = "/root/goco-backend/public";
