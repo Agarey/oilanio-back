@@ -97,7 +97,9 @@ const createTicket = async (request, response) => {
     email,
     phone,
     course_id,
-    connection
+    connection,
+    courseName,
+    teacherName
   } = request.body;
   
 
@@ -114,11 +116,11 @@ const createTicket = async (request, response) => {
       if (error) {
         throw error
       }
-      const mailMessageForSubscribed = `Имя пользователя: ${fullname}.\n${email ? "E-mail: " + email + "." : ""}\nТелефон: ${phone}.\n ${connection ? "Предпачитаемый способ связи: " + connection : ""}`;
+      const mailMessageForSubscribed = `Название курса: ${courseName}.\nИмя учителя: ${teacherName}.\nИмя пользователя: ${fullname}.\n${email ? "E-mail: " + email + "." : ""}\nТелефон: ${phone}.\n ${connection ? "Предпачитаемый способ связи: " + connection : ""}`;
 
-      sendEmail(stuffEmails, `На курс "Математика простыми словами" поступила новая заявка.`, mailMessageForSubscribed);
+      sendEmail(stuffEmails, `На курс "${courseName}" поступила новая заявка.`, mailMessageForSubscribed);
 
-      const nameForMindsales = `Заявка на курс "Математика простыми словами". ${fullname}`;
+      const nameForMindsales = `Заявка на курс "${courseName}". Имя учителя: ${teacherName}. Имя пользователя: ${fullname}`;
       const phoneForMindsales = phone.replace(/[(]/, '').replace(/[)]/, '').replace(/-/g, '');
 
       createTicketInMindsales(nameForMindsales, phoneForMindsales);
@@ -427,7 +429,7 @@ const getCourseInfoBlocks = (request, response) => {
   const id = parseInt(request.params.id);
   
 
-  pool.query('SELECT * FROM oc_course_info_blocks where course_id=$1', [id], (error, results) => {
+  pool.query('SELECT * FROM oc_course_info_blocks where course_id=$1 order by id asc', [id], (error, results) => {
       if (error) {
           response.status(500).json('error');
           console.error(error);
@@ -459,7 +461,7 @@ const getCourseSkills = (request, response) => {
 const getCourseStages = (request, response) => {
   const id = parseInt(request.params.id);
   
-    pool.query('SELECT * FROM oc_course_stages where course_id=$1', [id], (error, results) => {
+    pool.query('SELECT * FROM oc_course_stages where course_id=$1 order by id asc', [id], (error, results) => {
         if (error) {
             response.status(500).json('error');
             console.error(error);
