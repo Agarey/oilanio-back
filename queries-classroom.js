@@ -22,7 +22,7 @@ const stuffEmails = [
   'alexdrumm13@gmail.com',
   'oilanabaz7@gmail.com',
   'zznnznzn3@gmail.com',
-  '2021anara@mail.ru'
+  'Anara2607@mail.ru'
 ];
 
 const sendEmail = async (emailsTo, title, message) => {
@@ -70,7 +70,7 @@ const createTicketInMindsales = (clientName, clientPhone) => {
             "value": clientName
           },
         ],
-        "createDealIfExistsClient": true,
+        "createDealIfExistsClient": false,
         "deals": [
           {
             "dealFunnelStepId": 22,
@@ -553,6 +553,21 @@ const getProgramsByTeacherId = (request, response) => {
   })
 }
 
+const getProgramsByStudentId = (request, response) => {
+  const id = request.params.id;
+  console.log('ID',id)
+  pool.query('SELECT oc_programs.id, oc_programs.title, oc_programs.teacher_id, oc_programs.course_id, oc_courses.title as "course_title", oc_courses.start_date, oc_courses.end_date, oc_student_course_middleware.student_id, (select count(id) from oc_lessons where oc_programs.id = oc_lessons.program_id) as "lessons_count" FROM oc_programs INNER JOIN oc_courses on oc_programs.course_id = oc_courses.id INNER JOIN oc_student_course_middleware on oc_programs.id = oc_student_course_middleware.program_id where oc_student_course_middleware.student_id=$1 order by oc_programs.id asc', [id], (error, results) => {
+      if (error) {
+          response.status(500).json('error');
+          console.error(error);
+          
+      }else {
+          response.status(200).json(results.rows);
+          
+      }
+  })
+}
+
 const getProgramsByCourseId = (request, response) => {
   const id = request.params.id;
   pool.query('SELECT * FROM oc_programs WHERE course_id=$1', [id], (error, results) => {
@@ -571,6 +586,21 @@ const getLessonsByProgramId = (request, response) => {
   const id = request.params.id;
   console.log('ID',id)
   pool.query('SELECT * from oc_lessons where program_id=$1 order by lesson_order asc', [id], (error, results) => {
+      if (error) {
+          response.status(500).json('error');
+          console.error(error);
+          
+      }else {
+          response.status(200).json(results.rows);
+          
+      }
+  })
+}
+
+const getStudentLessonsByProgramId = (request, response) => {
+  const { studentId, programId } = request.body;
+  console.log(studentId, programId)
+  pool.query('SELECT oc_lessons.id, oc_lessons.title, oc_lessons.course_id, oc_lessons.tesis, oc_lessons.start_time, oc_lessons.lesson_order, oc_lessons.program_id, oc_student_course_middleware.student_id, oc_student_course_middleware.paid, oc_schedule.start_time as "personal_time", oc_schedule.status from oc_lessons FULL OUTER JOIN oc_student_course_middleware on oc_lessons.program_id = oc_student_course_middleware.program_id FULL OUTER JOIN oc_schedule on oc_lessons.id = oc_schedule.lesson_id WHERE oc_lessons.program_id = $2 and oc_student_course_middleware.program_id = $2 and oc_student_course_middleware.student_id = $1 order by lesson_order asc', [studentId, programId], (error, results) => {
       if (error) {
           response.status(500).json('error');
           console.error(error);
@@ -720,6 +750,28 @@ const deleteExercise = (request, response) => {
     })
 }
 
+const updateAnswerStatus = (request, response) => {
+    const { id, status } = request.body
+
+    pool.query('UPDATE oc_answers SET status = $2 WHERE id = $1', [id, status], (error, results) => {
+        if (error) {
+            throw error
+        }
+        response.status(200).send(`answer status updated`)
+    })
+}
+
+const updateAnswerComment = (request, response) => {
+    const { id, comment } = request.body
+
+    pool.query('UPDATE oc_answers SET comment = $2 WHERE id = $1', [id, comment], (error, results) => {
+        if (error) {
+            throw error
+        }
+        response.status(200).send(`answer status updated`)
+    })
+}
+
 const getCoursesByTeacherId = (request, response) => {
   const id = request.params.id;
   console.log('ID',id)
@@ -825,6 +877,7 @@ export default {
   getTeacherByCourse,
   getTeacherByUrl,
   getProgramsByTeacherId,
+  getProgramsByStudentId,
   getProgramsByCourseId,
   getLessonsByProgramId,
   createEmptyProgram,
@@ -842,5 +895,8 @@ export default {
   deleteExercise,
   getLessonInfo,
   getStudentScores,
-  getSertificateByTeacherId
+  getSertificateByTeacherId,
+  getStudentLessonsByProgramId,
+  updateAnswerStatus,
+  updateAnswerComment
 };

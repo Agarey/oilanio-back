@@ -470,7 +470,7 @@ const createTicketInMindsales = (clientName, clientPhone, clientMail, clientDire
                         "value": clientMessage
                     },
                 ],
-                "createDealIfExistsClient": true,
+                "createDealIfExistsClient": false,
                 "deals": [
                     {
                         "dealFunnelStepId": 22,
