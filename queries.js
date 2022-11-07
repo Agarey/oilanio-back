@@ -39,7 +39,8 @@ let stuffEmails = [
     'azat.aliaskar@gmail.com',
     'alexdrumm13@gmail.com',
     'oilanabaz7@gmail.com',
-    'zznnznzn3@gmail.com'
+    'zznnznzn3@gmail.com',
+    '2021anara@mail.ru'
 ]
 
 const setNumbersToCenters = () => {
