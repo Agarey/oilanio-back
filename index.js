@@ -1,17 +1,22 @@
 import express from 'express';
 import bodyParser from 'body-parser'
 const app = express()
+import ACTIONS from './actions.js'
 import db from './queries.js'
 import db_classroom from './queries-classroom.js';
 import cors from 'cors'
-import fs from"fs";
-import path from"path";
+import fs from "fs";
+import path from "path";
 import multer from "multer";
 import { dirname } from 'path';
 import { fileURLToPath } from 'url';
-import roleMiddleware from'./middleware/roleMiddleware.js'
+import roleMiddleware from './middleware/roleMiddleware.js'
+import http from 'http'
+import { Server } from "socket.io";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const server = http.createServer(app)
+const io = new Server(server);
 
 app.use(cors())
 
@@ -244,6 +249,7 @@ app.post('/createCourseStage', db_classroom.createCourseStage)
 app.post('/createUser', db_classroom.createUser)
 app.post('/createStudent', db_classroom.createStudent)
 app.post('/createLesson', db_classroom.createLesson)
+app.post('/createAnswer', db_classroom.createAnswer)
 app.post('/createExercise', db_classroom.createExercise)
 app.post('/createCategory', db_classroom.createCategory)
 app.post('/createSCM', db_classroom.createSCM)
@@ -268,7 +274,7 @@ app.post('/getProgramsByStudentId/:id', db_classroom.getProgramsByStudentId)
 app.post('/getProgramsByCourseId/:id', db_classroom.getProgramsByCourseId)
 app.post('/getLessonsByProgramId/:id', db_classroom.getLessonsByProgramId)
 app.post('/createEmptyProgram', db_classroom.createEmptyProgram)
-app.post('/getStudentsByTeacherId/:id', db_classroom.getStudentsByTeacherId)
+app.post('/getStudentsByTeacherId', db_classroom.getStudentsByTeacherId)
 app.post('/getExercisesByLessonId/:id', db_classroom.getExercisesByLessonId)
 app.post('/getAnswersByStudExId', db_classroom.getAnswersByStudExId)
 app.put('/updateStudentProgram', db_classroom.updateStudentProgram)
@@ -282,10 +288,16 @@ app.post('/getCurrentProgram/:id', db_classroom.getCurrentProgram)
 app.post('/getSertificateByTeacherId/:id', db_classroom.getSertificateByTeacherId)
 app.post('/getStudentLessonsByProgramId', db_classroom.getStudentLessonsByProgramId)
 app.put('/updateAnswerStatus', db_classroom.updateAnswerStatus)
+app.put('/updateStudentAnswer', db_classroom.updateStudentAnswer)
 app.put('/updateAnswerComment', db_classroom.updateAnswerComment)
-
+app.post('/getScheduleByLessonIdAndCourseIdAndStudentId', db_classroom.getScheduleByLessonIdAndCourseIdAndStudentId)
+app.post('/createSchedule', db_classroom.createSchedule)
+app.put('/updateSchedule', db_classroom.updateSchedule)
+app.put('/createPersonalRoom', db_classroom.createPersonalRoom)
+app.put('/createDefaultRoom', db_classroom.createDefaultRoom)
 app.get('/getStudentCourseInfo', db_classroom.getStudentCourseInfo)
 app.get('/getStudentScores', db_classroom.getStudentScores)
+app.get('/getLessonExercises', db_classroom.getLessonExercises)
 app.get('/getLessonInfo', db_classroom.getLessonInfo)
 
 let devPublicRoute = "dev\\goco-backend\\public";
@@ -341,8 +353,92 @@ app.post(
 );
 
 
-
 let port = process.env.PORT;
+let videoPort = 3031;
+
+function getClientRooms() {
+    const {rooms} = io.sockets.adapter;
+    return Array.from(rooms.keys());
+}
+
+function shareRoomsInfo() {
+    io.emit(ACTIONS.SHARE_ROOMS, {
+        rooms: getClientRooms()
+    })
+}
+
+io.on('connection', socket => {
+    shareRoomsInfo();
+
+    socket.on(ACTIONS.JOIN, config => {
+        const {room: roomID} = config;
+        const {rooms: joinedRooms} = socket;
+
+        if (Array.from(joinedRooms).includes(roomID)) {
+            return console.warn(`Already joined to ${roomID}`);
+        }
+
+        const clients = Array.from(io.sockets.adapter.rooms.get(roomID) || []);
+
+        clients.forEach(clientID => {
+            io.to(clientID).emit(ACTIONS.ADD_PEER, {
+                peerID: socket.id,
+                createOffer: false
+            });
+
+            socket.emit(ACTIONS.ADD_PEER, {
+                peerID: clientID,
+                createOffer: true,
+            });
+        });
+
+        socket.join(roomID);
+        shareRoomsInfo()
+    });
+
+    function leaveRoom() {
+        const {rooms} = socket;
+
+        Array.from(rooms)
+            .forEach(roomID => {
+                const clients = Array.from(io.sockets.adapter.rooms.get(roomID) || []);
+
+                clients.forEach(clientID => {
+                    io.to(clientID).emit(ACTIONS.REMOVE_PEER, {
+                        peerID: socket.id,
+                    });
+
+                    socket.emit(ACTIONS.REMOVE_PEER, {
+                        peerID: clientID,
+                    });
+                });
+
+                socket.leave(roomID);
+            });
+        shareRoomsInfo();
+    }
+
+    socket.on(ACTIONS.LEAVE, leaveRoom);
+    socket.on('disconnecting', leaveRoom)
+
+    socket.on(ACTIONS.RELAY_SDP, ({peerID, sessionDescription}) => {
+        io.to(peerID).emit(ACTIONS.SESSION_DESCRIPTION, {
+            peerID: socket.id,
+            sessionDescription,
+        })
+    });
+
+    socket.on(ACTIONS.RELAY_ICE, ({peerID, iceCandidate}) => {
+        io.to(peerID).emit(ACTIONS.ICE_CANDIDATE, {
+            peerID: socket.id,
+            iceCandidate,
+        });
+    });
+});
+
+server.listen(videoPort, () => {
+    console.log('Video server started!')
+})
 
 app.listen(port, () => {
     console.log(`Goco backend running on port ${port}.`)

@@ -275,6 +275,17 @@ const createLesson = (request, response) => {
     })
 }
 
+const createAnswer = (request, response) => {
+    const { answerText, lessonId, exerciseId, studentId, status } = request.body
+    console.log(answerText, lessonId, exerciseId, studentId, status)
+    pool.query('INSERT INTO oc_answers (text, lesson_id, exercise_id, student_id, status) VALUES ($1, $2, $3, $4, $5)', [answerText, lessonId, exerciseId, studentId, status], (error, result) => {
+        if (error) {
+            throw error
+        }
+        response.status(201).send(`Answer added with ID: ${result.insertId}`)
+    })
+}
+
 const createExercise = (request, response) => {
     const { exerciseText, exerciseLessonId, correctlyAnswer, status } = request.body
 
@@ -600,7 +611,7 @@ const getLessonsByProgramId = (request, response) => {
 const getStudentLessonsByProgramId = (request, response) => {
   const { studentId, programId } = request.body;
   console.log(studentId, programId)
-  pool.query('SELECT oc_lessons.id, oc_lessons.title, oc_lessons.course_id, oc_lessons.tesis, oc_lessons.start_time, oc_lessons.lesson_order, oc_lessons.program_id, oc_student_course_middleware.student_id, oc_student_course_middleware.paid, oc_schedule.start_time as "personal_time", oc_schedule.status from oc_lessons FULL OUTER JOIN oc_student_course_middleware on oc_lessons.program_id = oc_student_course_middleware.program_id FULL OUTER JOIN oc_schedule on oc_lessons.id = oc_schedule.lesson_id WHERE oc_lessons.program_id = $2 and oc_student_course_middleware.program_id = $2 and oc_student_course_middleware.student_id = $1 order by lesson_order asc', [studentId, programId], (error, results) => {
+  pool.query('SELECT oc_lessons.id, oc_lessons.title, oc_lessons.course_id, oc_lessons.tesis, oc_lessons.start_time, oc_lessons.lesson_order, oc_lessons.program_id, oc_lessons.translation_link as default_lesson_link, oc_student_course_middleware.student_id, oc_student_course_middleware.paid, oc_schedule.start_time as "personal_time", oc_schedule.translation_link as "personal_lesson_link", oc_schedule.status from oc_lessons FULL OUTER JOIN oc_student_course_middleware on oc_lessons.program_id = oc_student_course_middleware.program_id FULL OUTER JOIN oc_schedule on oc_lessons.id = oc_schedule.lesson_id WHERE oc_lessons.program_id = $2 and oc_student_course_middleware.program_id = $2 and oc_student_course_middleware.student_id = $1 order by lesson_order asc', [studentId, programId], (error, results) => {
       if (error) {
           response.status(500).json('error');
           console.error(error);
@@ -623,19 +634,19 @@ const createEmptyProgram = (request, response) => {
     })
 }
 
-const getStudentsByTeacherId = (request, response) => {
-  const id = request.params.id;
-  console.log('ID',id)
-  pool.query('SELECT oc_student_course_middleware.student_id, oc_student_course_middleware.course_id, oc_student_course_middleware.program_id, oc_courses.title as "course_title", oc_students.surname, oc_students.name, oc_students.patronymic, (select count(id) from oc_lessons where oc_student_course_middleware.program_id = oc_lessons.program_id) as "lessons_count", oc_programs.title as "program_title" from oc_student_course_middleware INNER JOIN oc_courses on oc_student_course_middleware.course_id = oc_courses.id INNER JOIN oc_programs on oc_student_course_middleware.program_id = oc_programs.id INNER JOIN oc_students on oc_student_course_middleware.student_id = oc_students.id where oc_courses.teacher_id=$1', [id], (error, results) => {
-      if (error) {
-          response.status(500).json('error');
-          console.error(error);
-          
-      }else {
-          response.status(200).json(results.rows);
-          
-      }
-  })
+const getStudentsByTeacherId = (request, response) => { 
+  const {id, sort} = request.body; 
+ 
+  console.log('ID',id) 
+  pool.query('SELECT oc_student_course_middleware.student_id, oc_student_course_middleware.course_id, oc_student_course_middleware.program_id, oc_courses.title as "course_title", oc_students.surname, oc_students.name, oc_students.patronymic, (select count(id) from oc_lessons where oc_student_course_middleware.program_id = oc_lessons.program_id) as "lessons_count", oc_programs.title as "program_title" from oc_student_course_middleware INNER JOIN oc_courses on oc_student_course_middleware.course_id = oc_courses.id INNER JOIN oc_programs on oc_student_course_middleware.program_id = oc_programs.id INNER JOIN oc_students on oc_student_course_middleware.student_id = oc_students.id where oc_courses.teacher_id=$1 ORDER BY $2', [id, sort], (error, results) => { 
+      if (error) { 
+          response.status(500).json('error'); 
+          console.error(error); 
+      }else { 
+          response.status(200).json(results.rows); 
+           
+      } 
+  }) 
 }
 
 const getExercisesByLessonId = (request, response) => {
@@ -679,6 +690,36 @@ const updateStudentProgram = (request, response) => {
                 throw error
             }
             response.status(200).send(`Student program modified`)
+        }
+    )
+}
+
+const createPersonalRoom = (request, response) => {
+    const { lessonId, lessonKey, studentId } = request.body
+    console.log('createPersonalRoom', lessonId, lessonKey, studentId)
+    pool.query(
+        'UPDATE oc_schedule SET translation_link = $2 WHERE student_id = $3 and lesson_id = $1',
+        [lessonId, lessonKey, studentId],
+        (error, results) => {
+            if (error) {
+                throw error
+            }
+            response.status(200).send(`Room is created`)
+        }
+    )
+}
+
+const createDefaultRoom = (request, response) => {
+    const { lessonId, lessonKey } = request.body
+
+    pool.query(
+        'UPDATE oc_lessons SET translation_link = $2 WHERE id = $1',
+        [lessonId, lessonKey],
+        (error, results) => {
+            if (error) {
+                throw error
+            }
+            response.status(200).send(`Room is created`)
         }
     )
 }
@@ -761,6 +802,17 @@ const updateAnswerStatus = (request, response) => {
     })
 }
 
+const updateStudentAnswer = (request, response) => {
+    const { answerText, answerId, status } = request.body
+
+    pool.query('UPDATE oc_answers SET text=$1, status=$3 WHERE id = $2', [answerText, answerId, status], (error, results) => {
+        if (error) {
+            throw error
+        }
+        response.status(200).send(`student answer updated`)
+    })
+}
+
 const updateAnswerComment = (request, response) => {
     const { id, comment } = request.body
 
@@ -789,27 +841,37 @@ const getCoursesByTeacherId = (request, response) => {
 
 const getStudentCourseInfo = (request, response) => {
   const {student_nick, couse_id} = request.query;
+  console.log('lol',student_nick, couse_id)
   // console.log(response);
   pool.query('SELECT oc_students.*, oc_student_course_middleware.program_id, oc_courses.title, oc_courses.description, oc_courses.translation_link, oc_teachers.name AS teach_name, oc_teachers.surname AS teach_surname, oc_teachers.patronymic AS teach_patronymic FROM oc_students INNER JOIN oc_student_course_middleware ON oc_student_course_middleware.student_id = oc_students.id INNER JOIN oc_courses ON oc_courses.id = oc_student_course_middleware.course_id INNER JOIN oc_teachers ON oc_courses.teacher_id = oc_teachers.id WHERE oc_students.nickname=$1 AND oc_courses.id=$2', [
     student_nick,
     couse_id
   ], (error, results) => {
     if (error) {
-      throw error
-    }
-    response.status(200).json(results.rows)
-  });
-};
+          response.status(500).json('error');
+          console.error(error);
+          
+      }else {
+          response.status(200).json(results.rows);
+          
+      }
+  })
+}
 
 const getLessonInfo = (request, response) => {
-  const {couse_id} = request.query;
-  pool.query('SELECT oc_lessons.id, oc_lessons.*, (SELECT COUNT(id) FROM oc_exercises WHERE oc_lessons.id=oc_exercises.lesson_id) AS all_exer,  (SELECT COUNT(id) FROM oc_answers WHERE oc_lessons.id=oc_answers.lesson_id) AS done_exer, COALESCE(100 / NULLIF((SELECT COUNT(id) FROM oc_exercises WHERE oc_lessons.id=oc_exercises.lesson_id), 0), 0) * (SELECT COUNT(id) FROM oc_answers WHERE oc_lessons.id=oc_answers.lesson_id) AS score FROM public.oc_lessons WHERE oc_lessons.course_id=$1 ORDER BY oc_lessons.lesson_order ASC', [
-    couse_id
+  const {couse_id, program_id, student_id} = request.query;
+  console.log(couse_id, program_id, student_id)
+  const answer_status = 'correct'
+  pool.query('SELECT oc_lessons.id, oc_lessons.*, (SELECT COUNT(id) FROM oc_exercises WHERE oc_lessons.id=oc_exercises.lesson_id) AS all_exer,  (SELECT COUNT(id) FROM oc_answers WHERE oc_lessons.id=oc_answers.lesson_id AND oc_answers.student_id=$3) AS done_exer, FLOOR(COALESCE(100 / NULLIF((SELECT COUNT(id) FROM oc_exercises WHERE oc_lessons.id=oc_exercises.lesson_id), 0), 0) * NULLIF((SELECT COUNT(id) FROM oc_answers WHERE oc_lessons.id=oc_answers.lesson_id AND oc_answers.student_id=$3 AND oc_answers.status = $4), 0)) AS score, oc_student_course_middleware.student_id, oc_student_course_middleware.paid, oc_schedule.start_time as "personal_time", oc_schedule.status FROM public.oc_lessons FULL OUTER JOIN oc_student_course_middleware on oc_lessons.program_id = oc_student_course_middleware.program_id FULL OUTER JOIN oc_schedule on oc_lessons.id = oc_schedule.lesson_id WHERE oc_lessons.course_id=$1 AND oc_lessons.program_id=$2 AND oc_student_course_middleware.program_id = $2 AND oc_student_course_middleware.student_id = $3 ORDER BY oc_lessons.lesson_order ASC', [
+    couse_id,
+    program_id,
+    student_id,
+    answer_status
   ], (error, results) => {
     if (error) {
       throw error
     }
-    console.log(results.rows);
+    // console.log(results.rows);
     response.status(200).json(results.rows)
   });
 };
@@ -823,6 +885,20 @@ const getStudentScores = (request, response) => {
     if (error) {
       throw error
     }
+    response.status(200).json(results.rows)
+  });
+};
+
+const getLessonExercises = (request, response) => {
+  const {lesson_id, student_id} = request.query;
+  pool.query('SELECT DISTINCT oc_exercises.*, oc_answers.student_id, oc_answers.id as answer_id, oc_answers.text as answer_text, oc_answers.status as answer_status FROM oc_exercises LEFT JOIN oc_answers ON oc_exercises.id=oc_answers.exercise_id AND oc_answers.student_id=$2 WHERE oc_exercises.lesson_id=$1 ORDER BY oc_exercises.exer_order ASC', [
+    lesson_id,
+    student_id
+  ], (error, results) => {
+    if (error) {
+      throw error
+    }
+    console.log(results.rows);
     response.status(200).json(results.rows)
   });
 };
@@ -842,6 +918,43 @@ const getSertificateByTeacherId = (request, response) => {
     })
   }
 
+  const getScheduleByLessonIdAndCourseIdAndStudentId = (request, response) => {
+    const { lesson_id, course_id, student_id } = request.body;
+    console.log("lesson_id, course_id, student_id", lesson_id, course_id, student_id)
+    pool.query('SELECT * FROM oc_schedule WHERE oc_schedule.lesson_id = $1 and oc_schedule.course_id = $2 and oc_schedule.student_id = $3', [lesson_id, course_id, student_id], (error, results) => {
+        if (error) {
+            response.status(500).json('error');
+            console.error(error);
+            
+        }else {
+            response.status(200).json(results.rows);
+            
+        }
+    })
+  }
+
+  const createSchedule = (request, response) => {
+    const { dateAndTimeMerger, lesson_id, course_id, student_id } = request.body
+    console.log("dateAndTimeMerger, lesson_id, course_id, student_id", dateAndTimeMerger, lesson_id, course_id, student_id)
+    pool.query('INSERT INTO oc_schedule (start_time, lesson_id, course_id, student_id) VALUES ($1, $2, $3, $4)', [dateAndTimeMerger, lesson_id, course_id, student_id], (error, result) => {
+        if (error) {
+            throw error
+        }
+        response.status(201).send(`Schedule added with ID: ${result.insertId}`)
+    })
+}
+
+const updateSchedule = (request, response) => {
+    const { dateAndTimeMerger, lesson_id, course_id, student_id } = request.body
+
+    pool.query('UPDATE oc_schedule SET start_time = $1 WHERE lesson_id = $2 and course_id = $3 and student_id = $4', [dateAndTimeMerger, lesson_id, course_id, student_id], (error, results) => {
+        if (error) {
+            throw error
+        }
+        response.status(200).send(`Schedule updated`)
+    })
+}
+
 export default {
   createTicket,
   getCaptcha,
@@ -857,6 +970,7 @@ export default {
   createUser,
   createStudent,
   createLesson,
+  createAnswer,
   createExercise,
   createCategory,
   createSCM,
@@ -898,5 +1012,12 @@ export default {
   getSertificateByTeacherId,
   getStudentLessonsByProgramId,
   updateAnswerStatus,
-  updateAnswerComment
+  updateStudentAnswer,
+  getLessonExercises,
+  updateAnswerComment,
+  getScheduleByLessonIdAndCourseIdAndStudentId,
+  createSchedule,
+  updateSchedule,
+  createPersonalRoom,
+  createDefaultRoom
 };
