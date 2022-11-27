@@ -13,10 +13,17 @@ import { fileURLToPath } from 'url';
 import roleMiddleware from './middleware/roleMiddleware.js'
 import http from 'http'
 import { Server } from "socket.io";
+import expressStatusMonitor from "express-status-monitor";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const server = http.createServer(app)
-const io = new Server(server);
+const io = new Server(server, {
+    cors: {
+    origin: '*',
+    methods: 'GET,PUT,POST,DELETE,OPTIONS'.split(','),
+    credentials: true
+  }
+});
 
 app.use(cors())
 
@@ -37,6 +44,7 @@ app.use(
         extended: true,
     })
 )
+app.use(expressStatusMonitor({ websocket: io, port: app.get('port') })); 
 
 app.get('/', (request, response) => {
     response.json({ info: 'Node.js, Express, and Postgres API' })

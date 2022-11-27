@@ -17,6 +17,7 @@
     "cors": "^2.8.5",
     "emailjs-com": "^2.6.4",
     "express": "^4.17.1",
+    "express-status-monitor": "^1.3.4",
     "googleapis": "^39.2.0",
     "http": "0.0.1-security",
     "jsonwebtoken": "^8.5.1",
