@@ -998,7 +998,20 @@ const getLessonByRoomKey = (request, response) => {
             
         }
     })
-  }
+}
+
+const getCoursePrices =  (request, response) => {
+    const id = request.params.id;
+    pool.query('SELECT * FROM oc_course_prices WHERE oc_course_prices.course_id=$1', [id], (error, results) => {
+        if (error) {
+            response.status(500).json('error');
+            console.error(error);
+            
+        } else {
+            response.status(200).json(results.rows);
+        }
+    })
+}
 
 export default {
   createTicket,
@@ -1070,5 +1083,6 @@ export default {
   createDefaultRoom,
   getLessonByRoomKey,
   getStudentByLessonKey,
-  getTeacherByLessonKey
+  getTeacherByLessonKey,
+  getCoursePrices
 };
