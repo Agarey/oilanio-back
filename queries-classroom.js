@@ -610,14 +610,14 @@ const getLessonsByProgramId = (request, response) => {
 
 const getStudentLessonsByProgramId = (request, response) => {
   const { studentId, programId } = request.body;
-  console.log(studentId, programId)
-  pool.query('SELECT oc_lessons.id, oc_lessons.title, oc_lessons.course_id, oc_lessons.tesis, oc_lessons.start_time, oc_lessons.lesson_order, oc_lessons.program_id, oc_lessons.translation_link as default_lesson_link, oc_student_course_middleware.student_id, oc_student_course_middleware.paid, oc_schedule.start_time as "personal_time", oc_schedule.translation_link as "personal_lesson_link", oc_schedule.status from oc_lessons FULL OUTER JOIN oc_student_course_middleware on oc_lessons.program_id = oc_student_course_middleware.program_id FULL OUTER JOIN oc_schedule on oc_lessons.id = oc_schedule.lesson_id WHERE oc_lessons.program_id = $2 and oc_student_course_middleware.program_id = $2 and oc_student_course_middleware.student_id = $1 order by lesson_order asc', [studentId, programId], (error, results) => {
+  const answer_status = 'correct'
+  pool.query('SELECT oc_lessons.id, oc_lessons.title, oc_lessons.course_id, oc_lessons.tesis, oc_lessons.start_time, oc_lessons.lesson_order, oc_lessons.program_id, oc_lessons.translation_link as default_lesson_link, (SELECT COUNT(id) FROM oc_exercises WHERE oc_lessons.id=oc_exercises.lesson_id) AS all_exer,  (SELECT COUNT(id) FROM oc_answers WHERE oc_lessons.id=oc_answers.lesson_id AND oc_answers.student_id=$1) AS done_exer, FLOOR(COALESCE(100 / NULLIF((SELECT COUNT(id) FROM oc_exercises WHERE oc_lessons.id=oc_exercises.lesson_id), 0), 0) * NULLIF((SELECT COUNT(id) FROM oc_answers WHERE oc_lessons.id=oc_answers.lesson_id AND oc_answers.student_id=$1 AND oc_answers.status = $3), 0)) AS score, oc_student_course_middleware.student_id, oc_student_course_middleware.paid, oc_schedule.start_time as "personal_time", oc_schedule.translation_link as "personal_lesson_link", oc_schedule.status from oc_lessons FULL OUTER JOIN oc_student_course_middleware on oc_lessons.program_id = oc_student_course_middleware.program_id FULL OUTER JOIN oc_schedule on oc_lessons.id = oc_schedule.lesson_id WHERE oc_lessons.program_id = $2 and oc_student_course_middleware.program_id = $2 and oc_student_course_middleware.student_id = $1 order by lesson_order asc', [studentId, programId, answer_status], (error, results) => {
       if (error) {
           response.status(500).json('error');
           console.error(error);
           
       }else {
-          response.status(200).json(results.rows);
+            response.status(200).json(results.rows);
           
       }
   })
@@ -861,7 +861,7 @@ const getLessonInfo = (request, response) => {
   const {couse_id, program_id, student_id} = request.query;
   console.log(couse_id, program_id, student_id)
   const answer_status = 'correct'
-  pool.query('SELECT oc_lessons.id, oc_lessons.*, (SELECT COUNT(id) FROM oc_exercises WHERE oc_lessons.id=oc_exercises.lesson_id) AS all_exer,  (SELECT COUNT(id) FROM oc_answers WHERE oc_lessons.id=oc_answers.lesson_id AND oc_answers.student_id=$3) AS done_exer, FLOOR(COALESCE(100 / NULLIF((SELECT COUNT(id) FROM oc_exercises WHERE oc_lessons.id=oc_exercises.lesson_id), 0), 0) * NULLIF((SELECT COUNT(id) FROM oc_answers WHERE oc_lessons.id=oc_answers.lesson_id AND oc_answers.student_id=$3 AND oc_answers.status = $4), 0)) AS score, oc_student_course_middleware.student_id, oc_student_course_middleware.paid, oc_schedule.start_time as "personal_time", oc_schedule.status FROM public.oc_lessons FULL OUTER JOIN oc_student_course_middleware on oc_lessons.program_id = oc_student_course_middleware.program_id FULL OUTER JOIN oc_schedule on oc_lessons.id = oc_schedule.lesson_id WHERE oc_lessons.course_id=$1 AND oc_lessons.program_id=$2 AND oc_student_course_middleware.program_id = $2 AND oc_student_course_middleware.student_id = $3 ORDER BY oc_lessons.lesson_order ASC', [
+  pool.query('SELECT oc_lessons.id, oc_lessons.*, (SELECT COUNT(id) FROM oc_exercises WHERE oc_lessons.id=oc_exercises.lesson_id) AS all_exer,  (SELECT COUNT(id) FROM oc_answers WHERE oc_lessons.id=oc_answers.lesson_id AND oc_answers.student_id=$3) AS done_exer, FLOOR(COALESCE(100 / NULLIF((SELECT COUNT(id) FROM oc_exercises WHERE oc_lessons.id=oc_exercises.lesson_id), 0), 0) * NULLIF((SELECT COUNT(id) FROM oc_answers WHERE oc_lessons.id=oc_answers.lesson_id AND oc_answers.student_id=$3 AND oc_answers.status = $4), 0)) AS score, oc_student_course_middleware.student_id, oc_student_course_middleware.paid, oc_schedule.start_time as "personal_time", oc_schedule.status, oc_lessons.translation_link as default_lesson_link, oc_schedule.translation_link as "personal_lesson_link" FROM public.oc_lessons FULL OUTER JOIN oc_student_course_middleware on oc_lessons.program_id = oc_student_course_middleware.program_id FULL OUTER JOIN oc_schedule on oc_lessons.id = oc_schedule.lesson_id WHERE oc_lessons.course_id=$1 AND oc_lessons.program_id=$2 AND oc_student_course_middleware.program_id = $2 AND oc_student_course_middleware.student_id = $3 ORDER BY oc_lessons.lesson_order ASC', [
     couse_id,
     program_id,
     student_id,
@@ -954,6 +954,51 @@ const updateSchedule = (request, response) => {
     })
 }
 
+const getLessonByRoomKey = (request, response) => {
+    const room = request.params.key;
+  
+    pool.query('SELECT * FROM oc_lessons INNER JOIN oc_schedule on oc_lessons.id = oc_schedule.lesson_id where oc_schedule.translation_link=$1', [room], (error, results) => {
+        if (error) {
+            response.status(500).json('error');
+            console.error(error);
+            
+        }else {
+            response.status(200).json(results.rows);
+            
+        }
+    })
+  }
+  
+  const getStudentByLessonKey = (request, response) => {
+    const room = request.params.key;
+    console.log('ROOM', room)
+    pool.query('SELECT * FROM oc_students INNER JOIN oc_schedule on oc_students.id = oc_schedule.student_id where oc_schedule.translation_link=$1', [room], (error, results) => {
+        if (error) {
+            response.status(500).json('error');
+            console.error(error);
+            
+        }else {
+            response.status(200).json(results.rows);
+            
+        }
+    })
+  }
+  
+  const getTeacherByLessonKey = (request, response) => {
+    const room = request.params.key;
+    console.log('ROOM', room)
+    pool.query('SELECT * FROM oc_teachers INNER JOIN oc_courses on oc_teachers.id = oc_courses.teacher_id INNER JOIN oc_schedule on oc_courses.id = oc_schedule.course_id where oc_schedule.translation_link=$1', [room], (error, results) => {
+        if (error) {
+            response.status(500).json('error');
+            console.error(error);
+            
+        }else {
+            response.status(200).json(results.rows);
+            
+        }
+    })
+  }
+
 export default {
   createTicket,
   getCaptcha,
@@ -1018,5 +1063,8 @@ export default {
   createSchedule,
   updateSchedule,
   createPersonalRoom,
-  createDefaultRoom
+  createDefaultRoom,
+  getLessonByRoomKey,
+  getStudentByLessonKey,
+  getTeacherByLessonKey
 };

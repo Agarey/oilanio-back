@@ -13,10 +13,21 @@ import { fileURLToPath } from 'url';
 import roleMiddleware from './middleware/roleMiddleware.js'
 import http from 'http'
 import { Server } from "socket.io";
+import expressStatusMonitor from "express-status-monitor";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const server = http.createServer(app)
-const io = new Server(server);
+const opts = {
+    key: fs.readFileSync('realibi_kz.key'),
+    cert: fs.readFileSync('realibi_kz.csr')
+}
+const server = http.createServer(opts, app)
+const io = new Server(server, {
+    cors: {
+    origin: '*',
+    methods: 'GET,PUT,POST,DELETE,OPTIONS'.split(','),
+    credentials: true
+  }
+});
 
 app.use(cors())
 
@@ -37,6 +48,7 @@ app.use(
         extended: true,
     })
 )
+app.use(expressStatusMonitor({ websocket: io, port: app.get('port') })); 
 
 app.get('/', (request, response) => {
     response.json({ info: 'Node.js, Express, and Postgres API' })
@@ -269,6 +281,9 @@ app.post('/getCourseStages/:id', db_classroom.getCourseStages)
 app.post('/getPrograms/:id', db_classroom.getPrograms)
 app.post('/getTeacherByCourse/:id', db_classroom.getTeacherByCourse)
 app.post('/getTeacherByUrl/:url', db_classroom.getTeacherByUrl)
+app.post('/getLessonByRoomKey/:key', db_classroom.getLessonByRoomKey)
+app.post('/getStudentByLessonKey/:key', db_classroom.getStudentByLessonKey)
+app.post('/getTeacherByLessonKey/:key', db_classroom.getTeacherByLessonKey)
 app.post('/getProgramsByTeacherId/:id', db_classroom.getProgramsByTeacherId)
 app.post('/getProgramsByStudentId/:id', db_classroom.getProgramsByStudentId)
 app.post('/getProgramsByCourseId/:id', db_classroom.getProgramsByCourseId)
@@ -436,10 +451,16 @@ io.on('connection', socket => {
     });
 });
 
-server.listen(videoPort, () => {
-    console.log('Video server started!')
+server.listen(videoPort, (err) => {
+    if (err){
+        throw Error(err);
+    }
+    console.log(`Video server started on port ${videoPort}`)
 })
 
-app.listen(port, () => {
+app.listen(port, (err) => {
+    if (err){
+        throw Error(err);
+    }
     console.log(`Goco backend running on port ${port}.`)
 })
