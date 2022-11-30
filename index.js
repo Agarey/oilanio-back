@@ -16,7 +16,11 @@ import { Server } from "socket.io";
 import expressStatusMonitor from "express-status-monitor";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-
+const opts = {
+    key: fs.readFileSync('realibi_kz.key'),
+    cert: fs.readFileSync('realibi_kz.csr')
+}
+const server = http.createServer(opts, app)
 const io = new Server(server, {
     cors: {
     origin: '*',
