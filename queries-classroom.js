@@ -549,6 +549,51 @@ const getTeacherByUrl = (request, response) => {
   })
 }
 
+const getLessonByRoomKey = (request, response) => {
+  const room = request.params.key;
+
+  pool.query('SELECT * FROM oc_lessons INNER JOIN oc_schedule on oc_lessons.id = oc_schedule.lesson_id where oc_schedule.translation_link=$1', [room], (error, results) => {
+      if (error) {
+          response.status(500).json('error');
+          console.error(error);
+          
+      }else {
+          response.status(200).json(results.rows);
+          
+      }
+  })
+}
+
+const getStudentByLessonKey = (request, response) => {
+  const room = request.params.key;
+  console.log('ROOM', room)
+  pool.query('SELECT * FROM oc_students INNER JOIN oc_schedule on oc_students.id = oc_schedule.student_id where oc_schedule.translation_link=$1', [room], (error, results) => {
+      if (error) {
+          response.status(500).json('error');
+          console.error(error);
+          
+      }else {
+          response.status(200).json(results.rows);
+          
+      }
+  })
+}
+
+const getTeacherByLessonKey = (request, response) => {
+  const room = request.params.key;
+  console.log('ROOM', room)
+  pool.query('SELECT * FROM oc_teachers INNER JOIN oc_courses on oc_teachers.id = oc_courses.teacher_id INNER JOIN oc_schedule on oc_courses.id = oc_schedule.course_id where oc_schedule.translation_link=$1', [room], (error, results) => {
+      if (error) {
+          response.status(500).json('error');
+          console.error(error);
+          
+      }else {
+          response.status(200).json(results.rows);
+          
+      }
+  })
+}
+
 const getProgramsByTeacherId = (request, response) => {
   const id = request.params.id;
   console.log('ID',id)
@@ -1034,6 +1079,9 @@ export default {
   getCourseStages,
   getTeacherByCourse,
   getTeacherByUrl,
+  getLessonByRoomKey,
+  getStudentByLessonKey,
+  getTeacherByLessonKey,
   getProgramsByTeacherId,
   getProgramsByStudentId,
   getProgramsByCourseId,
