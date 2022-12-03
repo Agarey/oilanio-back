@@ -1013,6 +1013,34 @@ const getCoursePrices =  (request, response) => {
     })
 }
 
+
+const createTeacherComment = (request, response) => {
+    const { studentId, exerciseId, text, date } = request.body
+    console.log("COMMENT studentId, exerciseId, text, date", studentId, exerciseId, text, date);
+
+    pool.query('INSERT INTO oc_teacher_comments (student_id, exercise_id, text, date) VALUES ($1, $2, $3, $4)', [studentId, exerciseId, text, date], (error, result) => {
+        if (error) {
+            throw error
+        }
+        response.status(201).send(`Comment added with ID: ${result.insertId}`)
+    })
+}
+
+const getTeacherCommentsByStudExId = (request, response) => {
+    const { studentId, exerciseId } = request.body
+    // console.log('ID',id)
+    pool.query('SELECT * from oc_teacher_comments where student_id=$1 and exercise_id=$2', [studentId, exerciseId], (error, results) => {
+        if (error) {
+            response.status(500).json('error');
+            console.error(error);
+            
+        }else {
+            response.status(200).json(results.rows);
+            
+        }
+    })
+  }
+
 export default {
   createTicket,
   getCaptcha,
@@ -1084,5 +1112,7 @@ export default {
   getLessonByRoomKey,
   getStudentByLessonKey,
   getTeacherByLessonKey,
-  getCoursePrices
+  getCoursePrices,
+  createTeacherComment,
+  getTeacherCommentsByStudExId
 };
