@@ -12,7 +12,7 @@ const productionPoolOptions = {
   password: 'root',
   port: 5432,
   ssl: false
-};
+}; 
 
 const Pool = pg.Pool
 const pool = new Pool(productionPoolOptions);
@@ -130,6 +130,41 @@ const createTicket = async (request, response) => {
     }
   )
 };
+
+const createMarathoneTicket = async (request, response) => {
+    const {
+      fullname,
+      phone,
+      connection,
+      marathone_id,
+      marathone_name
+    } = request.body;
+  
+    console.log(request.body);
+  
+    await pool.query(`INSERT INTO public.oc_marathon_applications (fullname, phone, marathone_id, datetime) VALUES ($1, $2, $3, current_timestamp)`,
+      [
+        fullname,
+        phone,
+        marathone_id
+      ],
+      async (error, results) => {
+        if (error) {
+          throw error
+        }
+        const mailMessageForSubscribed = `Название марафона: ${marathone_name}.\nИмя пользователя: ${fullname}.\nТелефон: ${phone}.\n ${"Предпачитаемый способ связи: " + connection === 0 ? "Звонок" : connection === 1 ? "Whatsapp" : "Звонок"}`;
+  
+        sendEmail(stuffEmails, `На марафон "${marathone_name}" поступила новая заявка.`, mailMessageForSubscribed);
+  
+        const nameForMindsales = `Заявка на марафон "${marathone_name}". Имя пользователя: ${fullname}`;
+        const phoneForMindsales = phone.replace(/[(]/, '').replace(/[)]/, '').replace(/-/g, '');
+  
+        // createTicketInMindsales(nameForMindsales, phoneForMindsales);
+        response.status(200).json(true);
+  
+      }
+    )
+  };
 
 const getCaptcha = async (request, response) => {
    pool.query('SELECT * FROM oc_captcha', (error, results) => {
@@ -639,7 +674,7 @@ const getStudentsByTeacherId = (request, response) => {
   const {id, sort} = request.body;
 
   console.log('ID',id)
-  pool.query('SELECT oc_student_course_middleware.student_id, oc_student_course_middleware.course_id, oc_student_course_middleware.program_id, oc_courses.title as "course_title", oc_students.surname, oc_students.name, oc_students.patronymic, (select count(id) from oc_lessons where oc_student_course_middleware.program_id = oc_lessons.program_id) as "lessons_count", oc_programs.title as "program_title" from oc_student_course_middleware INNER JOIN oc_courses on oc_student_course_middleware.course_id = oc_courses.id INNER JOIN oc_programs on oc_student_course_middleware.program_id = oc_programs.id INNER JOIN oc_students on oc_student_course_middleware.student_id = oc_students.id where oc_courses.teacher_id=$1 ORDER BY $2', [id, sort], (error, results) => {
+  pool.query('SELECT oc_student_course_middleware.student_id, oc_student_course_middleware.course_id, oc_student_course_middleware.program_id, oc_courses.title as "course_title", oc_courses.url as "course_url", oc_students.surname, oc_students.name, oc_students.patronymic, (select count(id) from oc_lessons where oc_student_course_middleware.program_id = oc_lessons.program_id) as "lessons_count", oc_programs.title as "program_title" from oc_student_course_middleware INNER JOIN oc_courses on oc_student_course_middleware.course_id = oc_courses.id INNER JOIN oc_programs on oc_student_course_middleware.program_id = oc_programs.id INNER JOIN oc_students on oc_student_course_middleware.student_id = oc_students.id where oc_courses.teacher_id=$1 ORDER BY $2', [id, sort], (error, results) => {
       if (error) {
           response.status(500).json('error');
           console.error(error);
@@ -840,12 +875,12 @@ const getCoursesByTeacherId = (request, response) => {
 }
 
 const getStudentCourseInfo = (request, response) => {
-  const {student_nick, couse_id} = request.query;
-  console.log('lol',student_nick, couse_id)
+  const {student_nick, course_url} = request.query;
+//   console.log('lol',student_nick, course_url)
   // console.log(response);
-  pool.query('SELECT oc_students.*, oc_student_course_middleware.program_id, oc_courses.title, oc_courses.description, oc_courses.translation_link, oc_teachers.name AS teach_name, oc_teachers.surname AS teach_surname, oc_teachers.patronymic AS teach_patronymic FROM oc_students INNER JOIN oc_student_course_middleware ON oc_student_course_middleware.student_id = oc_students.id INNER JOIN oc_courses ON oc_courses.id = oc_student_course_middleware.course_id INNER JOIN oc_teachers ON oc_courses.teacher_id = oc_teachers.id WHERE oc_students.nickname=$1 AND oc_courses.id=$2', [
+  pool.query('SELECT oc_students.*, oc_student_course_middleware.program_id, oc_courses.title, oc_courses.description, oc_courses.translation_link, oc_teachers.name AS teach_name, oc_teachers.surname AS teach_surname, oc_teachers.patronymic AS teach_patronymic FROM oc_students INNER JOIN oc_student_course_middleware ON oc_student_course_middleware.student_id = oc_students.id INNER JOIN oc_courses ON oc_courses.id = oc_student_course_middleware.course_id INNER JOIN oc_teachers ON oc_courses.teacher_id = oc_teachers.id WHERE oc_students.nickname=$1 AND oc_courses.url=$2', [
     student_nick,
-    couse_id
+    course_url
   ], (error, results) => {
     if (error) {
           response.status(500).json('error');
@@ -859,11 +894,19 @@ const getStudentCourseInfo = (request, response) => {
 }
 
 const getLessonInfo = (request, response) => {
+<<<<<<< HEAD
     const {couse_id, program_id, student_id} = request.query;
     console.log(couse_id, program_id, student_id)
     const answer_status = 'correct'
     pool.query('SELECT oc_lessons.id, oc_lessons.*, (SELECT COUNT(id) FROM oc_exercises WHERE oc_lessons.id=oc_exercises.lesson_id) AS all_exer,  (SELECT COUNT(id) FROM oc_answers WHERE oc_lessons.id=oc_answers.lesson_id AND oc_answers.student_id=$3) AS done_exer, FLOOR(COALESCE(NULLIF((SELECT COUNT(id) FROM oc_answers WHERE oc_lessons.id=oc_answers.lesson_id AND oc_answers.student_id=$3 AND oc_answers.status = $4), 0) * 100, 0) / NULLIF((SELECT COUNT(id) FROM oc_exercises WHERE oc_lessons.id=oc_exercises.lesson_id), 0)) AS score, oc_student_course_middleware.student_id, oc_student_course_middleware.paid, oc_schedule.start_time as "personal_time", oc_schedule.status, oc_lessons.translation_link as default_lesson_link, oc_schedule.translation_link as "personal_lesson_link" FROM public.oc_lessons FULL OUTER JOIN oc_student_course_middleware on oc_lessons.program_id = oc_student_course_middleware.program_id FULL OUTER JOIN oc_schedule on oc_lessons.id = oc_schedule.lesson_id WHERE oc_lessons.course_id=$1 AND oc_lessons.program_id=$2 AND oc_student_course_middleware.program_id = $2 AND oc_student_course_middleware.student_id = $3 ORDER BY oc_lessons.lesson_order ASC', [
       couse_id,
+=======
+    const {course_url, program_id, student_id} = request.query;
+    // console.log(course_url, program_id, student_id)
+    const answer_status = 'correct'
+    pool.query('SELECT oc_lessons.id, oc_lessons.*, (SELECT COUNT(id) FROM oc_exercises WHERE oc_lessons.id=oc_exercises.lesson_id) AS all_exer,  (SELECT COUNT(id) FROM oc_answers WHERE oc_lessons.id=oc_answers.lesson_id AND oc_answers.student_id=$3) AS done_exer, FLOOR(COALESCE(NULLIF((SELECT COUNT(id) FROM oc_answers WHERE oc_lessons.id=oc_answers.lesson_id AND oc_answers.student_id=$3 AND oc_answers.status = $4), 0) * 100, 0) / NULLIF((SELECT COUNT(id) FROM oc_exercises WHERE oc_lessons.id=oc_exercises.lesson_id), 0)) AS score, oc_student_course_middleware.student_id, oc_student_course_middleware.paid, oc_schedule.start_time as "personal_time", oc_schedule.status, oc_lessons.translation_link as default_lesson_link, oc_schedule.translation_link as "personal_lesson_link" FROM public.oc_lessons FULL OUTER JOIN oc_student_course_middleware on oc_lessons.program_id = oc_student_course_middleware.program_id FULL OUTER JOIN oc_schedule on oc_lessons.id = oc_schedule.lesson_id INNER JOIN oc_courses ON oc_courses.id=oc_lessons.course_id WHERE oc_courses.url=$1 AND oc_lessons.program_id=$2 AND oc_student_course_middleware.program_id = $2 AND oc_student_course_middleware.student_id = $3 ORDER BY oc_lessons.lesson_order ASC', [
+      course_url,
+>>>>>>> origin/main
       program_id,
       student_id,
       answer_status
@@ -1041,6 +1084,21 @@ const getTeacherCommentsByStudExId = (request, response) => {
     })
   }
 
+  const getMarathone = (request, response) => {
+    const title = request.params.title;
+    console.log("title", title)
+    console.log("request.params", request.params.title)
+  
+    pool.query('SELECT * FROM oc_marathons where url=$1', [title], (error, results) => {
+        if (error) {
+            response.status(500).json('error');
+            console.error(error);
+        } else {
+            response.status(200).json(results.rows);
+        }
+    })
+};
+
 export default {
   createTicket,
   getCaptcha,
@@ -1114,5 +1172,7 @@ export default {
   getTeacherByLessonKey,
   getCoursePrices,
   createTeacherComment,
-  getTeacherCommentsByStudExId
+  getTeacherCommentsByStudExId,
+  getMarathone,
+  createMarathoneTicket
 };
