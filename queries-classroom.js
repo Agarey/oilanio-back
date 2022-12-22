@@ -152,11 +152,11 @@ const createMarathoneTicket = async (request, response) => {
         if (error) { 
           throw error 
         } 
-        const mailMessageForSubscribed = Название марафона: ${marathone_name}.\nИмя пользователя: ${fullname}.\nТелефон: ${phone}.\n ${"Предпочитаемый способ связи: " + connection}; 
+        const mailMessageForSubscribed = `Название марафона: ${marathone_name}.\nИмя пользователя: ${fullname}.\nТелефон: ${phone}.\n ${"Предпочитаемый способ связи: " + connection}`; 
    
-        sendEmail(stuffEmails, На марафон "${marathone_name}" поступила новая заявка., mailMessageForSubscribed); 
+        sendEmail(stuffEmails, `На марафон "${marathone_name}" поступила новая заявка.`, mailMessageForSubscribed); 
    
-        const nameForMindsales = Заявка на марафон "${marathone_name}". Имя пользователя: ${fullname}; 
+        const nameForMindsales = `Заявка на марафон "${marathone_name}". Имя пользователя: ${fullname}`; 
         const phoneForMindsales = phone.replace(/[(]/, '').replace(/[)]/, '').replace(/-/g, ''); 
    
         createTicketInMindsales(nameForMindsales, phoneForMindsales); 
