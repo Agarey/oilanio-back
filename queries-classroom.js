@@ -131,39 +131,38 @@ const createTicket = async (request, response) => {
   )
 };
 
-const createMarathoneTicket = async (request, response) => {
-    const {
-      fullname,
-      phone,
-      connection,
-      marathone_id,
-      marathone_name
-    } = request.body;
-  
-    console.log(request.body);
-  
-    await pool.query(`INSERT INTO public.oc_marathon_applications (fullname, phone, marathone_id, datetime) VALUES ($1, $2, $3, current_timestamp)`,
-      [
-        fullname,
-        phone,
-        marathone_id
-      ],
-      async (error, results) => {
-        if (error) {
-          throw error
-        }
-        const mailMessageForSubscribed = `Название марафона: ${marathone_name}.\nИмя пользователя: ${fullname}.\nТелефон: ${phone}.\n ${"Предпачитаемый способ связи: " + connection === 0 ? "Звонок" : connection === 1 ? "Whatsapp" : "Звонок"}`;
-  
-        sendEmail(stuffEmails, `На марафон "${marathone_name}" поступила новая заявка.`, mailMessageForSubscribed);
-  
-        const nameForMindsales = `Заявка на марафон "${marathone_name}". Имя пользователя: ${fullname}`;
-        const phoneForMindsales = phone.replace(/[(]/, '').replace(/[)]/, '').replace(/-/g, '');
-  
-        // createTicketInMindsales(nameForMindsales, phoneForMindsales);
-        response.status(200).json(true);
-  
-      }
-    )
+const createMarathoneTicket = async (request, response) => { 
+    const { 
+      fullname, 
+      phone, 
+      connection, 
+      marathone_id, 
+      marathone_name 
+    } = request.body; 
+   
+    console.log(request.body); 
+   
+    await pool.query(`INSERT INTO public.oc_marathon_applications (fullname, phone, marathone_id, datetime) VALUES ($1, $2, $3, current_timestamp)`, 
+      [ 
+        fullname, 
+        phone, 
+        marathone_id 
+      ], 
+      async (error, results) => { 
+        if (error) { 
+          throw error 
+        } 
+        const mailMessageForSubscribed = `Название марафона: ${marathone_name}.\nИмя пользователя: ${fullname}.\nТелефон: ${phone}.\n ${"Предпочитаемый способ связи: " + connection}`; 
+   
+        sendEmail(stuffEmails, `На марафон "${marathone_name}" поступила новая заявка.`, mailMessageForSubscribed); 
+   
+        const nameForMindsales = `Заявка на марафон "${marathone_name}". Имя пользователя: ${fullname}`; 
+        const phoneForMindsales = phone.replace(/[(]/, '').replace(/[)]/, '').replace(/-/g, ''); 
+   
+        createTicketInMindsales(nameForMindsales, phoneForMindsales); 
+        response.status(200).json(true); 
+      } 
+    ) 
   };
 
 const getCaptcha = async (request, response) => {
@@ -1097,7 +1096,7 @@ const getTeacherCommentsByStudExId = (request, response) => {
             response.status(200).json(results.rows);
         }
     })
-};
+}
 
 export default {
   createTicket,
