@@ -1118,6 +1118,45 @@ const getTeacherCommentsByStudExId = (request, response) => {
     })
 }
 
+const getCourseCommentsWithCourseId = (request, response) => {
+    const { courseId } = request.body
+    console.log("HEEEY, courseId ", courseId );
+    pool.query('SELECT * from oc_course_comments where course_id=$1', [courseId], (error, results) => {
+        if (error) {
+            response.status(500).json('error');
+            console.error(error);
+            
+        }else {
+            response.status(200).json(results.rows);
+            
+        }
+    })
+}
+
+const getStudentById = (request, response) => {
+    const { studentId } = request.body
+    console.log("HEEEY 1");
+    pool.query('SELECT * FROM oc_students where id=$1', [studentId], (error, results) => {
+         if (error) {
+             throw error
+         }
+         console.log('student sent');
+         response.status(200).json(results.rows)
+     })
+ }
+
+const getCourseById = (request, response) => {
+    console.log("HEEEY 2");
+    const { courseId } = request.body
+    pool.query('SELECT * FROM oc_courses where id=$1', [courseId], (error, results) => {
+         if (error) {
+             throw error
+         }
+         console.log('course sent');
+         response.status(200).json(results.rows)
+     })
+ }
+
 export default {
   createTicket,
   getCaptcha,
@@ -1194,5 +1233,8 @@ export default {
   getTeacherCommentsByStudExId,
   getMarathone,
   createMarathoneTicket,
-  getMarathoneSkills
+  getMarathoneSkills,
+  getCourseCommentsWithCourseId,
+  getStudentById,
+  getCourseById
 };

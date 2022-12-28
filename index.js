@@ -320,6 +320,9 @@ app.get('/getLessonExercises', db_classroom.getLessonExercises)
 app.get('/getLessonInfo', db_classroom.getLessonInfo)
 app.post('/getTeacherCommentsByStudExId', db_classroom.getTeacherCommentsByStudExId)
 app.post('/createTeacherComment', db_classroom.createTeacherComment)
+app.post('/getCourseCommentsWithCourseId', db_classroom.getCourseCommentsWithCourseId)
+app.post('/getStudentById', db_classroom.getStudentById)
+app.post('/getCourseById', db_classroom.getCourseById)
 
 let devPublicRoute = "dev\\goco-backend\\public";
 let productionPublicRoute = "/root/goco-backend/public";
