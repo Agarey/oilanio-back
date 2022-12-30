@@ -100,18 +100,20 @@ const createTicket = async (request, response) => {
     course_id,
     connection,
     courseName,
-    teacherName
+    teacherName,
+    outputDate
   } = request.body;
   
 
   console.log(request.body);
 
-  await pool.query(`INSERT INTO public.oc_applications(fullname, email, phone, course_id, datetime) VALUES ($1, $2, $3, $4, current_timestamp)`,
+  await pool.query(`INSERT INTO public.oc_applications(fullname, email, phone, course_id, datetime, trial_lesson_datetime) VALUES ($1, $2, $3, $4, current_timestamp, $5)`,
     [
       fullname,
       email,
       phone,
-      course_id
+      course_id,
+      outputDate
     ],
     async (error, results) => {
       if (error) {
