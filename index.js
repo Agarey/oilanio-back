@@ -323,6 +323,7 @@ app.post('/createTeacherComment', db_classroom.createTeacherComment)
 app.post('/getCourseCommentsWithCourseId', db_classroom.getCourseCommentsWithCourseId)
 app.post('/getStudentById', db_classroom.getStudentById)
 app.post('/getCourseById', db_classroom.getCourseById)
+app.post('/getDatesForApplication/:id', db_classroom.getDatesForApplication)
 
 let devPublicRoute = "dev\\goco-backend\\public";
 let productionPublicRoute = "/root/goco-backend/public";

@@ -1157,6 +1157,21 @@ const getCourseById = (request, response) => {
      })
  }
 
+const getDatesForApplication = (request, response) => {
+  const id = request.params.id;
+  pool.query('SELECT a.id, a.trial_lesson_datetime AS lesson_time FROM oc_applications a JOIN oc_courses c ON a.course_id = c.id WHERE c.id = $1 UNION ALL SELECT l.id, l.start_time AS lesson_time FROM oc_lessons l JOIN oc_courses c ON l.course_id = c.id WHERE c.id = $1 UNION ALL SELECT s.id, s.start_time AS lesson_time FROM oc_schedule s JOIN oc_courses c ON s.course_id = c.id WHERE c.id = $1', [id], (error, results) => {
+      if (error) {
+          response.status(500).json('error');
+          console.error(error);
+          
+      }else {
+          response.status(200).json(results.rows);
+          console.log(results.rows)
+          
+      }
+  })
+}
+
 export default {
   createTicket,
   getCaptcha,
@@ -1236,5 +1251,6 @@ export default {
   getMarathoneSkills,
   getCourseCommentsWithCourseId,
   getStudentById,
-  getCourseById
+  getCourseById,
+  getDatesForApplication
 };
