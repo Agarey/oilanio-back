@@ -119,7 +119,7 @@ const createTicket = async (request, response) => {
       if (error) {
         throw error
       }
-      const mailMessageForSubscribed = `Название курса: ${courseName}.\nИмя учителя: ${teacherName}.\nИмя пользователя: ${fullname}.\n${email ? "E-mail: " + email + "." : ""}\nТелефон: ${phone}.\n ${connection ? "Предпачитаемый способ связи: " + connection : ""}`;
+      const mailMessageForSubscribed = `Название курса: ${courseName}.\nДата: ${outputDate}.\nИмя учителя: ${teacherName}.\nИмя пользователя: ${fullname}.\n${email ? "E-mail: " + email + "." : ""}\nТелефон: ${phone}.\n ${connection ? "Предпачитаемый способ связи: " + connection : ""}`;
 
       sendEmail(stuffEmails, `На курс "${courseName}" поступила новая заявка.`, mailMessageForSubscribed);
 
