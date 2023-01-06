@@ -1174,6 +1174,18 @@ const getDatesForApplication = (request, response) => {
   })
 }
 
+const deleteProgram = (request, response) => {
+    const {id} = request.body
+
+    console.log(request);
+    pool.query('DELETE FROM oc_programs WHERE id = $1', [id], (error, results) => {
+        if (error) {
+            throw error
+        }
+        response.status(200).send(`program deleted with ID: ${id}`)
+    })
+}
+
 export default {
   createTicket,
   getCaptcha,
@@ -1254,5 +1266,6 @@ export default {
   getCourseCommentsWithCourseId,
   getStudentById,
   getCourseById,
-  getDatesForApplication
+  getDatesForApplication,
+  deleteProgram
 };
