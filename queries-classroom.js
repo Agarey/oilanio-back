@@ -607,8 +607,8 @@ const getTeacherByUrl = (request, response) => {
 const getProgramsByTeacherId = (request, response) => {
   const id = request.params.id;
   console.log('ID',id)
-  pool.query('SELECT oc_programs.id, oc_programs.title, oc_programs.teacher_id, oc_programs.course_id, oc_courses.title as "course_title", oc_courses.start_date, oc_courses.end_date, (select count(id) from oc_lessons where oc_programs.id = oc_lessons.program_id) as "lessons_count" FROM oc_programs INNER JOIN oc_courses on oc_programs.course_id = oc_courses.id where oc_programs.teacher_id=$1 order by oc_programs.course_id desc, oc_programs.id asc', [id], (error, results) => {
-      if (error) {
+  pool.query('SELECT oc_programs.id, oc_programs.title, oc_programs.teacher_id, oc_programs.course_id, oc_courses.title as "course_title", oc_courses.start_date, oc_courses.end_date, (select count(id) from oc_lessons where oc_programs.id = oc_lessons.program_id) as "lessons_count", (SELECT COUNT(id) FROM oc_student_course_middleware WHERE program_id=oc_programs.id) as studentQty FROM oc_programs INNER JOIN oc_courses on oc_programs.course_id = oc_courses.id where oc_programs.teacher_id=$1 order by oc_programs.course_id desc, oc_programs.id asc', [id], (error, results) => {
+    if (error) {
           response.status(500).json('error');
           console.error(error);
           
