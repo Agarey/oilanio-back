@@ -22,7 +22,8 @@ const stuffEmails = [
   'alexdrumm13@gmail.com',
   'oilanabaz7@gmail.com',
   'zznnznzn3@gmail.com',
-  'Anara2607@mail.ru'
+  'Anara2607@mail.ru',
+  'stadjun.kon@gmail.com'
 ];
 
 const sendEmail = async (emailsTo, title, message) => {
