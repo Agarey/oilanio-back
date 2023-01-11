@@ -324,6 +324,7 @@ app.post('/getCourseCommentsWithCourseId', db_classroom.getCourseCommentsWithCou
 app.post('/getStudentById', db_classroom.getStudentById)
 app.post('/getCourseById', db_classroom.getCourseById)
 app.post('/getDatesForApplication/:id', db_classroom.getDatesForApplication)
+app.post('/getDatesForApplicationSecond', db_classroom.getDatesForApplicationSecond)
 app.delete('/deleteProgram', db_classroom.deleteProgram)
 
 let devPublicRoute = "dev\\goco-backend\\public";

@@ -1162,7 +1162,9 @@ const getCourseById = (request, response) => {
 
 const getDatesForApplication = (request, response) => {
   const id = request.params.id;
-  pool.query('SELECT a.id, a.trial_lesson_datetime AS lesson_time FROM oc_applications a JOIN oc_courses c ON a.course_id = c.id WHERE c.id = $1 UNION ALL SELECT l.id, l.start_time AS lesson_time FROM oc_lessons l JOIN oc_courses c ON l.course_id = c.id WHERE c.id = $1 UNION ALL SELECT s.id, s.start_time AS lesson_time FROM oc_schedule s JOIN oc_courses c ON s.course_id = c.id WHERE c.id = $1', [id], (error, results) => {
+  pool.query('SELECT a.id, a.trial_lesson_datetime AS lesson_time FROM oc_applications a JOIN oc_courses c ON a.course_id = c.id WHERE c.id in(' + id + ') ' +
+ ' UNION ALL SELECT l.id, l.start_time AS lesson_time FROM oc_lessons l JOIN oc_courses c ON l.course_id = c.id WHERE c.id in(' + id + ') ' +
+ ' UNION ALL SELECT s.id, s.start_time AS lesson_time FROM oc_schedule s JOIN oc_courses c ON s.course_id = c.id WHERE c.id in(' + id + ')', (error, results) => {
       if (error) {
           response.status(500).json('error');
           console.error(error);
@@ -1174,6 +1176,41 @@ const getDatesForApplication = (request, response) => {
       }
   })
 }
+
+const getDatesForApplicationSecond = (request, response) => {
+    const {coursesId, teacherId} = request.body;
+    console.log(coursesId, teacherId, "getDatesForApplicationSecond HEEEEEEEEEYY")
+    pool.query(
+        'SELECT a.id, a.trial_lesson_datetime AS lesson_time FROM oc_applications a JOIN oc_courses c ON a.course_id = c.id WHERE c.id in(' + coursesId + ') ' +
+        ' UNION ALL SELECT l.id, l.start_time AS lesson_time FROM oc_lessons l JOIN oc_courses c ON l.course_id = c.id WHERE c.id in(' + coursesId + ') ' +
+        ' UNION ALL SELECT s.id, s.start_time AS lesson_time FROM oc_schedule s JOIN oc_courses c ON s.course_id = c.id WHERE c.id in(' + coursesId + ')'+
+        ' UNION ALL SELECT o.id, o.start_time AS lesson_time FROM oc_other_lessons o WHERE o.teacher_id = $1', [teacherId],
+    (error, results) => {
+        if (error) {
+            response.status(500).json('error');
+            console.error(error);
+            
+        }else {
+            response.status(200).json(results.rows);
+            console.log(results.rows)
+            
+        }
+    })
+}
+
+// const getAnswersByStudExId = (request, response) => {
+//     const { studentId, exerciseId } = request.body
+//     // console.log('ID',id)
+//     pool.query('SELECT * from oc_answers where student_id=$1 and exercise_id=$2', [studentId, exerciseId], (error, results) => {
+//       if (error) {
+//           response.status(500).json('error');
+//           console.error(error);
+            
+//       } else {
+//           response.status(200).json(results.rows);  
+//       }
+//     })
+//   }
 
 const deleteProgram = (request, response) => {
     const {id} = request.body
@@ -1268,5 +1305,6 @@ export default {
   getStudentById,
   getCourseById,
   getDatesForApplication,
-  deleteProgram
+  deleteProgram,
+  getDatesForApplicationSecond
 };
