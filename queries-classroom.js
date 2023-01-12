@@ -708,7 +708,7 @@ const getStudentsByTeacherId = (request, response) => {
 const getExercisesByLessonId = (request, response) => {
   const id = request.params.id;
   console.log('ID',id)
-  pool.query('SELECT * from oc_exercises where lesson_id=$1', [id], (error, results) => {
+  pool.query('SELECT * from oc_exercises where lesson_id=$1 order by id', [id], (error, results) => {
       if (error) {
           response.status(500).json('error');
           console.error(error);
