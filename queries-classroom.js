@@ -1224,6 +1224,34 @@ const deleteProgram = (request, response) => {
     })
 }
 
+const updateLessonNumber = (request, response) => {
+    const { new_number, lesson_id } = request.body
+
+    console.log('updateLessonNumber');
+    console.log(request.body);
+    pool.query('UPDATE oc_lessons SET lesson_order = $1 WHERE id = $2', [new_number, lesson_id], (error, results) => {
+        if (error) {
+            throw error
+        }
+        response.status(200).send(`Lesson Number updated`)
+        // console.log(results);
+    })
+}
+
+const updateExerNumber = (request, response) => {
+    const { new_order, exercise_id } = request.body
+
+    console.log('updateExerNumber');
+    console.log(request.body);
+    pool.query('UPDATE oc_exercises SET exer_order = $1 WHERE id = $2', [new_order, exercise_id], (error, results) => {
+        if (error) {
+            throw error
+        }
+        response.status(200).send(`Exer Number updated`)
+        console.log(results);
+    })
+}
+
 export default {
   createTicket,
   getCaptcha,
@@ -1306,5 +1334,7 @@ export default {
   getCourseById,
   getDatesForApplication,
   deleteProgram,
-  getDatesForApplicationSecond
+  getDatesForApplicationSecond,
+  updateLessonNumber,
+  updateExerNumber
 };
