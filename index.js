@@ -11,16 +11,16 @@ import multer from "multer";
 import { dirname } from 'path';
 import { fileURLToPath } from 'url';
 import roleMiddleware from './middleware/roleMiddleware.js'
-import http from 'http'
+import https from 'https'
 import { Server } from "socket.io";
 import expressStatusMonitor from "express-status-monitor";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const opts = {
     key: fs.readFileSync('realibi_kz.key'),
-    cert: fs.readFileSync('realibi_kz.csr')
+    cert: fs.readFileSync('realibi_kz.crt')
 }
-const server = http.createServer(opts, app)
+const server = https.createServer(opts, app)
 const io = new Server(server, {
     cors: {
     origin: '*',
