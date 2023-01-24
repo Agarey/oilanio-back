@@ -324,6 +324,7 @@ app.post('/getTeacherCommentsByStudExId', db_classroom.getTeacherCommentsByStudE
 app.post('/createTeacherComment', db_classroom.createTeacherComment)
 app.post('/getCourseCommentsWithCourseId', db_classroom.getCourseCommentsWithCourseId)
 app.post('/getStudentById', db_classroom.getStudentById)
+app.post('/getStudentByIdForLesson', db_classroom.getStudentByIdForLesson)
 app.post('/getCourseById', db_classroom.getCourseById)
 app.post('/getDatesForApplication/:id', db_classroom.getDatesForApplication)
 app.post('/getDatesForApplicationSecond', db_classroom.getDatesForApplicationSecond)
