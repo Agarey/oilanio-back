@@ -384,7 +384,7 @@ app.post(
 
 
 let port = process.env.PORT;
-let videoPort = 3031;
+let videoPort = 3032;
 
 function getClientRooms() {
     const {rooms} = io.sockets.adapter;
