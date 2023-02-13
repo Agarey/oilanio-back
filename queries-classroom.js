@@ -4,6 +4,9 @@ import moment from 'moment'
 import axios from 'axios';
 import { request, response } from 'express';
 moment.locale('ru');
+import jwt from 'jsonwebtoken'
+import {secret} from "./config.js"
+import {v4 as uuidv4} from 'uuid';
 
 const productionPoolOptions = {
   user: 'postgres',
@@ -167,6 +170,108 @@ const createMarathoneTicket = async (request, response) => {
       } 
     ) 
   };
+
+const registerUser = async (req, res) => {
+  const role = req.body.role;
+  const name = req.body.name;
+  const surname = req.body.surname;
+  const phone = req.body.phone;
+  const email = req.body.email;
+  const login = req.body.login;
+  const password = req.body.password;
+
+  try {
+    const roleExists = await pool.query(
+      "SELECT id, name, value FROM oc_roles WHERE value = $1",
+      [role]
+    );
+
+    if (!roleExists.rows.length) {
+      return res.status(400).json({ message: "Invalid role." });
+    }
+
+    const roleId = roleExists.rows[0].id;
+    const roleValue = roleExists.rows[0].value;
+
+    const userExists = await pool.query(
+      "SELECT id, nick FROM oc_users WHERE nick = $1",
+      [login]
+    );
+
+    if (userExists.rows.length) {
+      return res
+        .status(400)
+        .json({ message: "Login is already in use, try another." });
+    }
+
+    const checkRole = await pool.query(
+      "SELECT id FROM oc_" + roleValue + "s WHERE " + (roleValue === "teacher" ? "url" : "nickname") + " = $1",
+      [login]
+    );
+
+    if (checkRole.rows.length) {
+      return res
+        .status(400)
+        .json({ message: "Login is already in use for " + role + ", try another." });
+    }
+
+    await pool.query(
+      "INSERT INTO oc_" +
+        roleValue +
+        "s (name, surname, " +
+        (roleValue === "teacher" ? "url" : "nickname") +
+        ", phone, email) VALUES ($1, $2, $3, $4, $5)",
+        [name, surname, login, phone, email]
+      );
+    const personId = await pool.query("SELECT max(id) as id from oc_" + roleValue + "s");
+    await pool.query(
+      "INSERT INTO oc_users (nick, password, role_id, person_id) VALUES ($1, $2, $3, $4)",
+      [login, password, roleId, personId.rows[0].id]
+    );
+    sendEmail([email], `Добро пожаловать в сообщество преподавателей Oilan-Classroom!`, `Ваш логин "${login}", пароль "${password}"`);
+    return { success: true, message: "User registered successfully!" };
+  } catch (err) {
+    console.log(err)
+    return { success: false, message: "Error registering user: " + err };
+  }
+}
+
+const loginUser = async (req, res) => {
+  const { role, login, password } = req.body;
+  const roleValue = role.toLowerCase();
+  console.log('role', role)
+  let roleId
+  if (!role){
+    roleId = 1
+  }
+  if (role == 'teacher'){
+    roleId = 2
+  }
+  if (role == 'student'){
+    roleId = 3
+  }
+  try {
+    const result = await pool.query(
+      "SELECT * FROM oc_users WHERE nick=$1 AND password=$2 AND role_id=$3",
+      [login, password, roleId]
+    );
+    if (result.rowCount === 0) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const person = result.rows[0];
+    const token = jwt.sign({ login: login }, secret, { expiresIn: '1h' });
+    return res.json({
+      success: true,
+      message: 'Authentication successful',
+      token: token,
+      role: role,
+      login: login
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error" });
+  } 
+}
 
 const getCaptcha = async (request, response) => {
    pool.query('SELECT * FROM oc_captcha', (error, results) => {
@@ -1313,6 +1418,8 @@ const updateExerNumber = (request, response) => {
 }
 
 export default {
+  registerUser,
+  loginUser,
   createTicket,
   getCaptcha,
   getAllCaptchaId,
