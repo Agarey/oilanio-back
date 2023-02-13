@@ -1679,5 +1679,7 @@ export default {
   deleteStudent,
   updateStudentProgramStatus,
   addStudentProgram,
-  createStudentAndProgram
+  createStudentAndProgram,
+  registerUser,
+  loginUser
 };
