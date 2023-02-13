@@ -107,9 +107,6 @@ const createTicket = async (request, response) => {
     teacherName,
     outputDate
   } = request.body;
-  
-
-  console.log(request.body);
 
   await pool.query(`INSERT INTO public.oc_applications(fullname, email, phone, course_id, datetime, trial_lesson_datetime) VALUES ($1, $2, $3, $4, current_timestamp, $5)`,
     [
@@ -145,8 +142,6 @@ const createMarathoneTicket = async (request, response) => {
       marathone_id, 
       marathone_name 
     } = request.body; 
-   
-    console.log(request.body); 
    
     await pool.query(`INSERT INTO public.oc_marathon_applications (fullname, phone, marathone_id, datetime) VALUES ($1, $2, $3, current_timestamp)`, 
       [ 
@@ -239,7 +234,6 @@ const registerUser = async (req, res) => {
 const loginUser = async (req, res) => {
   const { role, login, password } = req.body;
   const roleValue = role.toLowerCase();
-  console.log('role', role)
   let roleId
   if (!role){
     roleId = 1
@@ -295,7 +289,6 @@ const getAllCaptchaId = async (request, response) => {
 
 const getCaptchaWithId = (request, response) => {
   const id = parseInt(request.params.id);
-  console.log(id)
 
   pool.query('SELECT * FROM oc_captcha where id=$1', [id], (error, results) => {
       if (error) {
@@ -402,7 +395,6 @@ const createStudent = (request, response) => {
         if (error) {
             throw error
         }
-        console.log(result);
         response.status(201).send(result)
     })
 }
@@ -410,7 +402,6 @@ const createStudent = (request, response) => {
 const createStudentAndProgram = (request, response) => {
     const { studentSurname, studentName, studentPatronymic, nickname, programId } = request.body
 
-    console.log(request.body);
     pool.query('INSERT INTO oc_students (surname, name, patronymic, nickname) VALUES ($1, $2, $3, $4)', [studentSurname, studentName, studentPatronymic, nickname], (error, result) => {
         if (error) {
             throw error
@@ -421,14 +412,12 @@ const createStudentAndProgram = (request, response) => {
                 throw error
             }
             const studentId = result.rows[0].id;
-            console.log(studentId);
             response.status(201).send();
             pool.query("SELECT course_id as id from oc_programs WHERE id = $1", [programId], (error, result) => {
                 if (error) {
                     throw error
                 }
                 const courseId = result.rows[0].id;
-                console.log(courseId);
                 response.status(201).send();
                 pool.query('INSERT INTO oc_student_course_middleware (student_id, course_id, program_id) VALUES ($1, $2, $3)', [studentId, courseId, programId]);
             });
@@ -451,7 +440,6 @@ const createLesson = (request, response) => {
 
 const createAnswer = (request, response) => {
     const { answerText, lessonId, exerciseId, studentId, status } = request.body
-    console.log(answerText, lessonId, exerciseId, studentId, status)
     pool.query('INSERT INTO oc_answers (text, lesson_id, exercise_id, student_id, status) VALUES ($1, $2, $3, $4, $5)', [answerText, lessonId, exerciseId, studentId, status], (error, result) => {
         if (error) {
             throw error
@@ -495,7 +483,6 @@ const createSCM = (request, response) => {
 
 const createProgram = (request, response) => {
     const { programTitle, programCourseId, programTeacherId } = request.body
-    console.log(programTitle, programCourseId, programTeacherId)
     pool.query('INSERT INTO oc_programs (title, course_id, teacher_id) VALUES ($1, $2, $3)', [programTitle, programCourseId, programTeacherId], (error, result) => {
         if (error) {
             throw error
@@ -575,7 +562,6 @@ const getRoles = async (request, response) => {
 }
 
 const getCourseOC = (request, response) => {
-  // console.log(request)
   const title = request.params.title;
   console.log("title", title)
   console.log("request.params", request.params.title)
@@ -594,7 +580,6 @@ const getCourseOC = (request, response) => {
 }
 
 const getCourseTargets = (request, response) => {
-  // console.log(request)
   const id = parseInt(request.params.id);
   
 
@@ -611,7 +596,6 @@ const getCourseTargets = (request, response) => {
 }
 
 const getCourseInfoBlocks = (request, response) => {
-  // console.log(request)
   const id = parseInt(request.params.id);
   
 
@@ -628,7 +612,6 @@ const getCourseInfoBlocks = (request, response) => {
 }
 
 const getCourseSkills = (request, response) => {
-    // console.log(request)
     const id = parseInt(request.params.id);
   
 
@@ -676,7 +659,6 @@ const getCourseStages = (request, response) => {
 }
 
 const getProgramsById = (request, response) => {
-    // console.log(request)
     const id = parseInt(request.params.id);
   
 
@@ -693,7 +675,6 @@ const getProgramsById = (request, response) => {
 }
 
 const getCurrentProgram = (request, response) => {
-    // console.log(request)
     const id = parseInt(request.params.id);
   
 
@@ -711,8 +692,6 @@ const getCurrentProgram = (request, response) => {
 
 const getTeacherByCourse = (request, response) => {
   const id = request.params.id;
-
-  console.log(request);
 
   pool.query('SELECT * FROM oc_teachers where id=$1', [id], (error, results) => {
       if (error) {
@@ -744,7 +723,6 @@ const getTeacherByUrl = (request, response) => {
 
 const getProgramsByTeacherId = (request, response) => {
   const id = request.params.id;
-//   console.log('ID',id)
   pool.query('SELECT oc_programs.id, oc_programs.title, oc_programs.teacher_id, oc_programs.course_id, oc_courses.title as "course_title", oc_courses.start_date, oc_courses.end_date, (select count(id) from oc_lessons where oc_programs.id = oc_lessons.program_id) as "lessons_count", (SELECT COUNT(id) FROM oc_student_course_middleware WHERE program_id=oc_programs.id) as studentQty FROM oc_programs INNER JOIN oc_courses on oc_programs.course_id = oc_courses.id where oc_programs.teacher_id=$1 order by oc_programs.course_id desc, oc_programs.id asc', [id], (error, results) => {
     if (error) {
           response.status(500).json('error');
@@ -759,8 +737,6 @@ const getProgramsByTeacherId = (request, response) => {
 
 const getProgramsByStudentId = (request, response) => {
   const id = request.params.id;
-  console.log(request);
-  console.log('ID prooooooooooo',id)
   pool.query('SELECT oc_programs.id, oc_programs.title, oc_programs.teacher_id, oc_programs.course_id, oc_courses.title as "course_title", oc_courses.start_date, oc_courses.end_date, oc_student_course_middleware.*, (select count(id) from oc_lessons where oc_programs.id = oc_lessons.program_id) as "lessons_count" FROM oc_programs INNER JOIN oc_courses on oc_programs.course_id = oc_courses.id INNER JOIN oc_student_course_middleware on oc_programs.id = oc_student_course_middleware.program_id where oc_student_course_middleware.student_id=$1 order by oc_programs.id asc', [id], (error, results) => {
       if (error) {
           response.status(500).json('error');
@@ -789,7 +765,6 @@ const getProgramsByCourseId = (request, response) => {
 
 const getLessonsByProgramId = (request, response) => {
   const id = request.params.id;
-  console.log('ID',id)
   pool.query('SELECT * from oc_lessons where program_id=$1 order by lesson_order asc', [id], (error, results) => {
       if (error) {
           response.status(500).json('error');
@@ -812,14 +787,12 @@ const getStudentLessonsByProgramId_old = (request, response) => {
             
         }else {
               response.status(200).json(results.rows);
-            console.log(results.rows.length);
         }
     })
   }
 
   const getLessonInfo_new = (request, response) => {
     const {course_url, program_id, student_id} = request.query;
-    console.log(course_url, program_id, student_id)
     // const answer_status = 'correct'
 
     pool.query('SELECT oc_courses.id FROM oc_courses WHERE oc_courses.url=$1', [
@@ -847,14 +820,14 @@ const getStudentLessonsByProgramId_old = (request, response) => {
 
 const getStudentLessonsByProgramId = (request, response) => {
     const { studentId, programId } = request.body;
-
+    console.log('getStudentLessonsByProgramId', request.body)
     pool.query('SELECT oc_lessons.id, oc_lessons.title, oc_lessons.course_id, oc_lessons.tesis, oc_lessons.start_time, oc_lessons.lesson_order, oc_lessons.program_id, oc_lessons.translation_link as default_lesson_link, (SELECT COUNT(id) FROM oc_exercises WHERE oc_lessons.id=oc_exercises.lesson_id) AS all_exer,  (SELECT COUNT(id) FROM oc_answers WHERE oc_lessons.id=oc_answers.lesson_id AND oc_answers.student_id=$1) AS done_exer, FLOOR(COALESCE(NULLIF((SELECT COUNT(id) FROM oc_answers WHERE oc_lessons.id=oc_answers.lesson_id AND oc_answers.student_id=$1), 0) * 100, 0) / NULLIF((SELECT COUNT(id) FROM oc_exercises WHERE oc_lessons.id=oc_exercises.lesson_id), 0)) AS score, oc_student_course_middleware.student_id, oc_student_course_middleware.paid, oc_schedule.start_time as "personal_time", oc_schedule.translation_link as "personal_lesson_link", oc_schedule.status FROM oc_lessons INNER JOIN oc_student_course_middleware ON oc_student_course_middleware.program_id = oc_lessons.program_id LEFT JOIN oc_schedule ON oc_lessons.id = oc_schedule.lesson_id AND oc_student_course_middleware.student_id=oc_schedule.student_id WHERE oc_lessons.program_id = $2     AND oc_student_course_middleware.program_id = $2     AND oc_student_course_middleware.student_id = $1 ORDER BY oc_lessons.lesson_order', [studentId, programId], (error, results) => {
         if (error) {
             response.status(500).json('error');
-            console.error(error);
+            console.log('getStudentLessonsByProgramId', error)
         }else {
             response.status(200).json(results.rows);
-            // console.log(results.rows);
+            console.log('getStudentLessonsByProgramId', results.rows)
         }
     })
 }
@@ -862,7 +835,6 @@ const getStudentLessonsByProgramId = (request, response) => {
 
 const createEmptyProgram = (request, response) => {
     const { emptyProgramTitle, emptyProgramCourseId, emptyProgramTeacherId } = request.body
-    console.log(emptyProgramTitle, emptyProgramCourseId, emptyProgramTeacherId)
     pool.query('INSERT INTO oc_programs (title, course_id, teacher_id) VALUES ($1, $2, $3)', [emptyProgramTitle, emptyProgramCourseId, emptyProgramTeacherId], (error, result) => {
         if (error) {
             throw error
@@ -874,7 +846,6 @@ const createEmptyProgram = (request, response) => {
 const getStudentsByTeacherId = (request, response) => {
   const {id, sort} = request.body;
 
-  console.log('ID',id)
   pool.query('SELECT oc_student_course_middleware.student_id, oc_student_course_middleware.course_id, oc_student_course_middleware.program_id, oc_courses.title as "course_title", oc_courses.url as "course_url", oc_students.surname, oc_students.name, oc_students.patronymic, oc_students.nickname, (select count(id) from oc_lessons where oc_student_course_middleware.program_id = oc_lessons.program_id) as "lessons_count", oc_programs.title as "program_title" from oc_student_course_middleware INNER JOIN oc_courses on oc_student_course_middleware.course_id = oc_courses.id INNER JOIN oc_programs on oc_student_course_middleware.program_id = oc_programs.id INNER JOIN oc_students on oc_student_course_middleware.student_id = oc_students.id where oc_courses.teacher_id=$1 ORDER BY $2', [id, sort], (error, results) => {
       if (error) {
           response.status(500).json('error');
@@ -888,7 +859,6 @@ const getStudentsByTeacherId = (request, response) => {
 
 const getExercisesByLessonId = (request, response) => {
   const id = request.params.id;
-  console.log('IDDDDD',id)
   pool.query('SELECT * from oc_exercises where lesson_id=$1 order by id', [id], (error, results) => {
       if (error) {
           response.status(500).json('error');
@@ -903,7 +873,6 @@ const getExercisesByLessonId = (request, response) => {
 
 const getAnswersByStudExId = (request, response) => {
   const { studentId, exerciseId } = request.body
-  // console.log('ID',id)
   pool.query('SELECT * from oc_answers where student_id=$1 and exercise_id=$2', [studentId, exerciseId], (error, results) => {
     if (error) {
         response.status(500).json('error');
@@ -933,8 +902,6 @@ const updateStudentProgram = (request, response) => {
 const updateStudentProgramStatus = (request, response) => {
     const { studentId, programId, status } = request.body
 
-    console.log(studentId, programId, status);
-
     pool.query(
         'UPDATE oc_student_course_middleware SET status = $3 WHERE student_id = $1 and program_id = $2',
         [studentId, programId, status],
@@ -949,8 +916,6 @@ const updateStudentProgramStatus = (request, response) => {
 
 const addStudentProgram = (request, response) => {
     const { studentId, courseId, programId } = request.body
-
-    console.log(studentId, courseId, programId);
 
     pool.query('INSERT INTO oc_student_course_middleware (student_id, course_id, program_id) VALUES ($1, $2, $3)', [studentId, courseId, programId], (error, result) => {
         if (error) {
@@ -971,7 +936,6 @@ const updateStudentData = (request, response) => {
                 throw error
             }
             response.status(200).send(`Student program modified`)
-            console.log(results.rows);
         }
     )
 }
@@ -1150,7 +1114,6 @@ const updateAnswerComment = (request, response) => {
 
 const getCoursesByTeacherId = (request, response) => {
     const id = request.params.id;
-    console.log('ID',id)
     pool.query('SELECT oc_courses.*, count(oc_programs.id) AS program_count FROM oc_courses LEFT JOIN oc_programs ON oc_programs.course_id = oc_courses.id WHERE oc_courses.teacher_id=$1 GROUP BY oc_courses.id', [id], (error, results) => {
       if (error) {
           response.status(500).json('error');
@@ -1158,39 +1121,53 @@ const getCoursesByTeacherId = (request, response) => {
           
       }else {
           response.status(200).json(results.rows);
-          console.log(results.rows);
       }
     })
 }
 
+// const getPassedStudents = (request, response) => {
+//   console.log('mi v zaprose', request.params.id)
+//     const id = request.params.id;
+//     pool.query('SELECT count(oc_schedule.id) AS passed_students FROM oc_schedule WHERE oc_schedule.course_id = $1 AND oc_schedule.status = false', [id], (error, results) => {
+//         if (error) {
+//             response.status(500).json('error');
+//             console.error('mi v zaprose', error);
+//         } else {
+//             response.status(200).json(results.rows);
+//             console.log('mi v zaprose', results.rows)
+//         }
+//     })
+// }
+
 const getPassedStudents = (request, response) => {
     const id = request.params.id;
-    pool.query('SELECT count(oc_schedule.id) AS passed_students FROM oc_schedule WHERE oc_schedule.course_id = $1 AND oc_schedule.status = false', [id], (error, results) => {
-        if (error) {
-            response.status(500).json('error');
-            console.error(error);
-        } else {
+    const status = 'complieted'
+    pool.query('SELECT count(DISTINCT oc_student_course_middleware.student_id) AS passed_students '
+    + 'FROM oc_student_course_middleware '
+    + 'WHERE oc_student_course_middleware.course_id = $1 AND oc_student_course_middleware.status=$2', [id, status], (error, results) => {
+      if (error) {
+        response.status(500).json('error');
+        console.error(error);
+      } else {
             response.status(200).json(results.rows);
-        }
-    })
+      }
+    });
 }
 
 const getAllStudents = (request, response) => {
     const id = request.params.id;
-    pool.query('SELECT count(oc_schedule.id) AS all_students FROM oc_schedule WHERE oc_schedule.course_id = $1 ', [id], (error, results) => {
-        if (error) {
-            response.status(500).json('error');
-            console.error(error);
-        } else {
+    pool.query('SELECT count(DISTINCT oc_schedule.student_id) AS all_students FROM oc_schedule WHERE oc_schedule.course_id = $1 ', [id], (error, results) => {
+      if (error) {
+        response.status(500).json('error');
+        console.error(error);
+      } else {
             response.status(200).json(results.rows);
-        }
+      }
     })
 }
 
 const getStudentCourseInfo = (request, response) => {
   const {student_nick, course_url} = request.query;
-//   console.log('lol',student_nick, course_url)
-  // console.log(response);
   pool.query('SELECT oc_students.*, oc_student_course_middleware.program_id, oc_courses.title, oc_courses.description, oc_courses.translation_link, oc_teachers.name AS teach_name, oc_teachers.surname AS teach_surname, oc_teachers.patronymic AS teach_patronymic FROM oc_students INNER JOIN oc_student_course_middleware ON oc_student_course_middleware.student_id = oc_students.id INNER JOIN oc_courses ON oc_courses.id = oc_student_course_middleware.course_id INNER JOIN oc_teachers ON oc_courses.teacher_id = oc_teachers.id WHERE oc_students.nickname=$1 AND oc_courses.url=$2', [
     student_nick,
     course_url
@@ -1208,8 +1185,6 @@ const getStudentCourseInfo = (request, response) => {
 
 const getLessonInfo = (request, response) => {
     const {course_url, program_id, student_id} = request.query;
-    // console.log(course_url, program_id, student_id)
-    // const answer_status = 'correct'
 
     pool.query('SELECT oc_courses.id FROM oc_courses WHERE oc_courses.url=$1', [
         course_url
@@ -1256,7 +1231,6 @@ const getLessonExercises = (request, response) => {
     if (error) {
       throw error
     }
-    // console.log(results.rows);
     response.status(200).json(results.rows)
   });
 };
@@ -1278,7 +1252,6 @@ const getSertificateByTeacherId = (request, response) => {
 
   const getScheduleByLessonIdAndCourseIdAndStudentId = (request, response) => {
     const { lesson_id, course_id, student_id } = request.body;
-    console.log("lesson_id, course_id, student_id", lesson_id, course_id, student_id)
     pool.query('SELECT * FROM oc_schedule WHERE oc_schedule.lesson_id = $1 and oc_schedule.course_id = $2 and oc_schedule.student_id = $3', [lesson_id, course_id, student_id], (error, results) => {
         if (error) {
             response.status(500).json('error');
@@ -1293,7 +1266,6 @@ const getSertificateByTeacherId = (request, response) => {
 
   const createSchedule = (request, response) => {
     const { dateAndTimeMerger, lesson_id, course_id, student_id } = request.body
-    console.log("dateAndTimeMerger, lesson_id, course_id, student_id", dateAndTimeMerger, lesson_id, course_id, student_id)
     pool.query('INSERT INTO oc_schedule (start_time, lesson_id, course_id, student_id) VALUES ($1, $2, $3, $4)', [dateAndTimeMerger, lesson_id, course_id, student_id], (error, result) => {
         if (error) {
             throw error
@@ -1351,7 +1323,6 @@ const getLessonByRoomKey = (request, response) => {
             console.error(error);
             
         }else {
-            // console.log(results.rows);
             response.status(200).json(results.rows);
             
         }
@@ -1389,7 +1360,6 @@ const getCoursePrices =  (request, response) => {
 
 const createTeacherComment = (request, response) => {
     const { studentId, exerciseId, text, date } = request.body
-    console.log("COMMENT studentId, exerciseId, text, date", studentId, exerciseId, text, date);
 
     pool.query('INSERT INTO oc_teacher_comments (student_id, exercise_id, text, date) VALUES ($1, $2, $3, $4)', [studentId, exerciseId, text, date], (error, result) => {
         if (error) {
@@ -1401,7 +1371,6 @@ const createTeacherComment = (request, response) => {
 
 const getTeacherCommentsByStudExId = (request, response) => {
     const { studentId, exerciseId } = request.body
-    // console.log('ID',id)
     pool.query('SELECT * from oc_teacher_comments where student_id=$1 and exercise_id=$2', [studentId, exerciseId], (error, results) => {
         if (error) {
             response.status(500).json('error');
@@ -1416,8 +1385,6 @@ const getTeacherCommentsByStudExId = (request, response) => {
 
   const getMarathone = (request, response) => {
     const title = request.params.title;
-    console.log("title", title)
-    console.log("request.params", request.params.title)
   
     pool.query('SELECT * FROM oc_marathons where url=$1', [title], (error, results) => {
         if (error) {
@@ -1431,7 +1398,6 @@ const getTeacherCommentsByStudExId = (request, response) => {
 
 const getCourseCommentsWithCourseId = (request, response) => {
     const { courseId } = request.body
-    console.log("HEEEY, courseId ", courseId );
     pool.query('SELECT * from oc_course_comments where course_id=$1', [courseId], (error, results) => {
         if (error) {
             response.status(500).json('error');
@@ -1446,22 +1412,17 @@ const getCourseCommentsWithCourseId = (request, response) => {
 
 const getStudentById = (request, response) => {
     const { studentId } = request.body
-    console.log(studentId);
-    console.log("HEEEY 1");
     pool.query('SELECT * FROM oc_students where id=$1', [studentId], (error, results) => {
          if (error) {
              throw error
          }
          console.log('student sent');
-        //  console.log(results.rows);
          response.status(200).json(results.rows)
      })
  }
 
 const getCourseById = (request, response) => {
-    console.log("HEEEY 2");
     const { courseId } = request.body
-    console.log(courseId);
     pool.query('SELECT * FROM oc_courses where id=$1', [courseId], (error, results) => {
          if (error) {
              throw error
@@ -1470,6 +1431,17 @@ const getCourseById = (request, response) => {
          response.status(200).json(results.rows)
      })
  }
+
+const getCourseByProgramId = (request, response) => {
+    const { programId } = request.body
+    pool.query('SELECT c.* FROM oc_programs p JOIN oc_courses c ON p.course_id = c.id WHERE p.id = $1' , [programId], (error, results) => {
+      if (error) {
+        throw error
+      }
+      console.log('course sent');
+      response.status(200).json(results.rows[0])
+    })
+}
 
 const getDatesForApplication = (request, response) => {
   const id = request.params.id;
@@ -1482,7 +1454,6 @@ const getDatesForApplication = (request, response) => {
           
       }else {
           response.status(200).json(results.rows);
-          console.log(results.rows)
           
       }
   })
@@ -1490,7 +1461,6 @@ const getDatesForApplication = (request, response) => {
 
 const getDatesForApplicationSecond = (request, response) => {
     const {coursesId, teacherId} = request.body;
-    console.log(coursesId, teacherId, "getDatesForApplicationSecond HEEEEEEEEEYY")
     pool.query(
         'SELECT a.id, a.trial_lesson_datetime AS lesson_time FROM oc_applications a JOIN oc_courses c ON a.course_id = c.id WHERE c.id in(' + coursesId + ') ' +
         ' UNION ALL SELECT l.id, l.start_time AS lesson_time FROM oc_lessons l JOIN oc_courses c ON l.course_id = c.id WHERE c.id in(' + coursesId + ') ' +
@@ -1503,7 +1473,6 @@ const getDatesForApplicationSecond = (request, response) => {
             
         }else {
             response.status(200).json(results.rows);
-            console.log(results.rows)
             
         }
     })
@@ -1526,7 +1495,6 @@ const getDatesForApplicationSecond = (request, response) => {
 const deleteProgram = (request, response) => {
     const {id} = request.body
 
-    console.log(request);
     pool.query('DELETE FROM oc_programs WHERE id = $1', [id], (error, results) => {
         if (error) {
             throw error
@@ -1538,28 +1506,23 @@ const deleteProgram = (request, response) => {
 const updateLessonNumber = (request, response) => {
     const { new_number, lesson_id } = request.body
 
-    console.log('updateLessonNumber');
-    console.log(request.body);
     pool.query('UPDATE oc_lessons SET lesson_order = $1 WHERE id = $2', [new_number, lesson_id], (error, results) => {
         if (error) {
             throw error
         }
         response.status(200).send(`Lesson Number updated`)
-        // console.log(results);
     })
 }
 
 const updateExerNumber = (request, response) => {
     const { new_order, exercise_id } = request.body
 
-    console.log('updateExerNumber');
-    console.log(request.body);
     pool.query('UPDATE oc_exercises SET exer_order = $1 WHERE id = $2', [new_order, exercise_id], (error, results) => {
         if (error) {
             throw error
         }
         response.status(200).send(`Exer Number updated`)
-        console.log(results);
+
     })
 }
 
@@ -1681,5 +1644,6 @@ export default {
   addStudentProgram,
   createStudentAndProgram,
   registerUser,
-  loginUser
+  loginUser,
+  getCourseByProgramId
 };
