@@ -323,6 +323,7 @@ app.post('/getAllStudents/:id', db_classroom.getAllStudents)
 app.post('/getDatesForApplication/:id', db_classroom.getDatesForApplication)
 app.post('/getDatesForApplicationSecond', db_classroom.getDatesForApplicationSecond)
 app.delete('/deleteProgram', db_classroom.deleteProgram)
+app.delete('/deleteCourse', db_classroom.deleteCourse)
 app.post('/addStudentProgram', db_classroom.addStudentProgram)
 app.post('/createStudentAndProgram', db_classroom.createStudentAndProgram)
 

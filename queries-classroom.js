@@ -253,7 +253,7 @@ const loginUser = async (req, res) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
     const person = result.rows[0];
-    const token = jwt.sign({ login: login }, secret, { expiresIn: '1h' });
+    const token = jwt.sign({ login: login }, secret, { expiresIn: '10000h' });
     return res.json({
       success: true,
       message: 'Authentication successful',
@@ -413,7 +413,6 @@ const createStudent = (request, response) => {
 const createStudentAndProgram = (request, response) => {
     const { studentSurname, studentName, studentPatronymic, nickname, programId } = request.body;
 
-    // Check if nickname exists in oc_students, oc_teachers, or oc_users
     Promise.all([
         pool.query('SELECT nickname FROM oc_students WHERE nickname = $1', [nickname]),
         pool.query('SELECT url AS nickname FROM oc_teachers WHERE url = $1', [nickname]),
@@ -423,7 +422,6 @@ const createStudentAndProgram = (request, response) => {
         if (found) {
             response.status(400).send("Данный логин уже зарегистрирован, необходимо попробовать другой");
         } else {
-            // If nickname is not found, continue with insertion
             pool.query('INSERT INTO oc_students (surname, name, patronymic, nickname) VALUES ($1, $2, $3, $4)', [studentSurname, studentName, studentPatronymic, nickname], (error, result) => {
                 if (error) {
                     throw error;
@@ -832,7 +830,6 @@ const getStudentLessonsByProgramId_old = (request, response) => {
             pool.query('SELECT DISTINCT *, (SELECT COUNT(id) FROM oc_exercises WHERE oc_lessons.id=oc_exercises.lesson_id) AS all_exer,  (SELECT COUNT(id) FROM oc_answers WHERE oc_lessons.id=oc_answers.lesson_id AND oc_answers.student_id=$1) AS done_exer, FLOOR(COALESCE(NULLIF((SELECT COUNT(id) FROM oc_answers WHERE oc_lessons.id=oc_answers.lesson_id AND oc_answers.student_id=$1), 0) * 100, 0) / NULLIF((SELECT COUNT(id) FROM oc_exercises WHERE oc_lessons.id=oc_exercises.lesson_id), 0)) AS score, oc_student_course_middleware.student_id, oc_student_course_middleware.paid, oc_schedule.start_time as "personal_time", oc_schedule.translation_link as "personal_lesson_link", oc_schedule.status FROM oc_lessons  INNER JOIN oc_student_course_middleware ON oc_student_course_middleware.program_id = oc_lessons.program_id LEFT JOIN oc_schedule ON oc_lessons.id = oc_schedule.lesson_id AND oc_student_course_middleware.student_id=oc_schedule.student_id WHERE oc_lessons.program_id = $1 AND oc_student_course_middleware.student_id = $2', [
                 program_id,
                 student_id,
-                // answer_status
             ], (error, results) => {
                 if (error) {
                 throw error
@@ -1070,15 +1067,31 @@ const updateLesson = (request, response) => {
 }
 
 const deleteLesson = (request, response) => {
-    const {id} = request.body
+  const { id } = request.body;
 
-    pool.query('DELETE FROM oc_lessons WHERE id = $1', [id], (error, results) => {
+  pool.query('DELETE FROM oc_lessons WHERE id = $1', [id], (error, results) => {
+    if (error) {
+      throw error;
+    }
+    pool.query('DELETE FROM oc_answers WHERE lesson_id = $1', [id], (error, results) => {
+      if (error) {
+        throw error;
+      }
+    });
+    pool.query('DELETE FROM oc_exercises WHERE lesson_id = $1', [id], (error, results) => {
+      if (error) {
+        throw error;
+      }
+      pool.query('DELETE FROM oc_teacher_comments WHERE exercise_id IN (SELECT id FROM oc_exercises WHERE lesson_id = $1)', [id], (error, results) => {
         if (error) {
-            throw error
+          throw error;
         }
-        response.status(200).send(`lesson deleted with ID: ${id}`)
-    })
-}
+      });
+      
+      response.status(200).send(`lesson deleted with ID: ${id}`);
+    });
+  });
+};
 
 const updateExercise = (request, response) => {
     const { exerciseId, exerciseText, exerciseAnswer } = request.body
@@ -1102,6 +1115,12 @@ const deleteExercise = (request, response) => {
         if (error) {
             throw error
         }
+        pool.query('DELETE FROM oc_teacher_comments WHERE exercise_id = $1', [id], (error, results) => {
+            if (error) {
+                throw error;
+            }
+        });
+
         response.status(200).send(`exercise deleted with ID: ${id}`)
     })
 }
@@ -1151,20 +1170,6 @@ const getCoursesByTeacherId = (request, response) => {
       }
     })
 }
-
-// const getPassedStudents = (request, response) => {
-//   console.log('mi v zaprose', request.params.id)
-//     const id = request.params.id;
-//     pool.query('SELECT count(oc_schedule.id) AS passed_students FROM oc_schedule WHERE oc_schedule.course_id = $1 AND oc_schedule.status = false', [id], (error, results) => {
-//         if (error) {
-//             response.status(500).json('error');
-//             console.error('mi v zaprose', error);
-//         } else {
-//             response.status(200).json(results.rows);
-//             console.log('mi v zaprose', results.rows)
-//         }
-//     })
-// }
 
 const getPassedStudents = (request, response) => {
     const id = request.params.id;
@@ -1520,15 +1525,139 @@ const getDatesForApplicationSecond = (request, response) => {
 //   }
 
 const deleteProgram = (request, response) => {
-    const {id} = request.body
+    const { id } = request.body;
 
-    pool.query('DELETE FROM oc_programs WHERE id = $1', [id], (error, results) => {
+    pool.query('SELECT id FROM oc_lessons WHERE program_id = $1', [id], (error, results) => {
         if (error) {
-            throw error
+            throw error;
         }
-        response.status(200).send(`program deleted with ID: ${id}`)
-    })
-}
+
+        const lessonIds = results.rows.map(row => row.id);
+
+        pool.query('DELETE FROM oc_exercises WHERE lesson_id = ANY($1)', [lessonIds], (error, results) => {
+            if (error) {
+                throw error;
+            }
+
+            pool.query('DELETE FROM oc_answers WHERE lesson_id = ANY($1)', [lessonIds], (error, results) => {
+                if (error) {
+                    throw error;
+                }
+
+                pool.query('DELETE FROM oc_lessons WHERE program_id = $1', [id], (error, results) => {
+                    if (error) {
+                        throw error;
+                    }
+
+                    pool.query('DELETE FROM oc_student_course_middleware WHERE program_id = $1', [id], (error, results) => {
+                        if (error) {
+                            throw error;
+                        }
+
+                        pool.query('DELETE FROM oc_programs WHERE id = $1', [id], (error, results) => {
+                            if (error) {
+                                throw error;
+                            }
+
+                            pool.query('DELETE FROM oc_teacher_comments WHERE exercise_id IN (SELECT id FROM oc_exercises WHERE lesson_id = ANY($1))', [lessonIds], (error, results) => {
+                                if (error) {
+                                    throw error;
+                                }
+
+                                response.status(200).send(`Program deleted with ID: ${id}`);
+                            });
+                        });
+                    });
+                });
+            });
+        });
+    });
+};
+
+const deleteCourse = (request, response) => {
+    const { id } = request.body;
+
+    pool.query('DELETE FROM oc_courses WHERE id = $1', [id], (error, results) => {
+        if (error) {
+            throw error;
+        }
+        pool.query('DELETE FROM oc_course_info_blocks WHERE course_id = $1', [id], (error, results) => {
+            if (error) {
+                throw error;
+            }
+        });
+        pool.query('DELETE FROM oc_course_prices WHERE course_id = $1', [id], (error, results) => {
+            if (error) {
+                throw error;
+            }
+        });
+        pool.query('DELETE FROM oc_course_skills WHERE course_id = $1', [id], (error, results) => {
+            if (error) {
+                throw error;
+            }
+        });
+        pool.query('DELETE FROM oc_course_stages WHERE course_id = $1', [id], (error, results) => {
+            if (error) {
+                throw error;
+            }
+        });
+        pool.query('DELETE FROM oc_course_targets WHERE course_id = $1', [id], (error, results) => {
+            if (error) {
+                throw error;
+            }
+        });
+        pool.query('DELETE FROM oc_course_comments WHERE course_id = $1', [id], (error, results) => {
+            if (error) {
+                throw error;
+            }
+        });
+        pool.query('DELETE FROM oc_schedule WHERE course_id = $1', [id], (error, results) => {
+            if (error) {
+                throw error;
+            }
+        });
+        pool.query('DELETE FROM oc_student_course_middleware WHERE course_id = $1', [id], (error, results) => {
+            if (error) {
+                throw error;
+            }
+        });
+        pool.query('SELECT id FROM oc_lessons WHERE course_id = $1', [id], (error, results) => {
+            if (error) {
+                throw error;
+            }
+
+            const lessonIds = results.rows.map(row => row.id);
+
+            pool.query('DELETE FROM oc_exercises WHERE lesson_id = ANY($1)', [lessonIds], (error, results) => {
+                if (error) {
+                    throw error;
+                }
+            });
+            pool.query('DELETE FROM oc_answers WHERE lesson_id = ANY($1)', [lessonIds], (error, results) => {
+                if (error) {
+                    throw error;
+                }
+            });
+            pool.query('DELETE FROM oc_lessons WHERE course_id = $1', [id], (error, results) => {
+                if (error) {
+                    throw error;
+                }
+            });
+            pool.query('DELETE FROM oc_programs WHERE course_id = $1', [id], (error, results) => {
+                if (error) {
+                    throw error;
+                }
+            });
+            pool.query('DELETE FROM oc_teacher_comments WHERE exercise_id IN (SELECT id FROM oc_exercises WHERE lesson_id = ANY($1))', [lessonIds], (error, results) => {
+                if (error) {
+                    throw error;
+                }
+
+                response.status(200).send(`Course deleted with ID: ${id}`);
+            });
+        });
+    });
+};
 
 const updateLessonNumber = (request, response) => {
     const { new_number, lesson_id } = request.body
@@ -1657,6 +1786,7 @@ export default {
   getCourseById,
   getDatesForApplication,
   deleteProgram,
+  deleteCourse,
   getDatesForApplicationSecond,
   updateLessonNumber,
   updateExerNumber,
