@@ -193,10 +193,21 @@ const registerUser = async (req, res) => {
       [login]
     );
 
+    const emailExam = await pool.query(
+        "SELECT id, email FROM oc_" + roleValue + "s WHERE email = $1",
+        [email]
+    );
+
     if (userExists.rows.length) {
       return res
         .status(400)
         .json({ message: "Login is already in use, try another." });
+    }
+
+    if (emailExam.rows.length) {
+        return res
+          .status(400)
+          .json({ message: "Email is already in use " + role + ", try another." });
     }
 
     const checkRole = await pool.query(
@@ -221,9 +232,16 @@ const registerUser = async (req, res) => {
     const personId = await pool.query("SELECT max(id) as id from oc_" + roleValue + "s");
     await pool.query(
       "INSERT INTO oc_users (nick, password, role_id, person_id) VALUES ($1, $2, $3, $4)",
-      [login, password, roleId, personId.rows[0].id]
+      [login, password, roleId, personId.rows[0].id],
+      async (error, results) => { 
+        if (error) { 
+          throw error 
+        } 
+        sendEmail([email], `Добро пожаловать в сообщество преподавателей Oilan-Classroom!`, `Ваш логин "${login}", пароль "${password}"`);
+        console.log(results);
+        response.status(200).json(results.rows)
+      } 
     );
-    sendEmail([email], `Добро пожаловать в сообщество преподавателей Oilan-Classroom!`, `Ваш логин "${login}", пароль "${password}"`);
     return { success: true, message: "User registered successfully!" };
   } catch (err) {
     console.log(err)
