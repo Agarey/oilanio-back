@@ -239,7 +239,7 @@ const registerUser = async (req, res) => {
         } 
         sendEmail([email], `Добро пожаловать в сообщество преподавателей Oilan-Classroom!`, `Ваш логин "${login}", пароль "${password}"`);
         console.log(results);
-        response.status(200).json(results.rows)
+        res.status(200).json(results.rows)
       } 
     );
     return { success: true, message: "User registered successfully!" };
