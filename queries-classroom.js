@@ -1722,6 +1722,10 @@ const deleteStudent = (request, response) => {
     })
 }
 
+const getServerTime = (request, response) => {
+    response.status(200).json(new Date())
+}
+
 export default {
   createTicket,
   getCaptcha,
@@ -1820,5 +1824,6 @@ export default {
   createStudentAndProgram,
   registerUser,
   loginUser,
-  getCourseByProgramId
+  getCourseByProgramId,
+  getServerTime
 };

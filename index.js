@@ -326,6 +326,7 @@ app.delete('/deleteProgram', db_classroom.deleteProgram)
 app.delete('/deleteCourse', db_classroom.deleteCourse)
 app.post('/addStudentProgram', db_classroom.addStudentProgram)
 app.post('/createStudentAndProgram', db_classroom.createStudentAndProgram)
+app.get('/getServerTime', db_classroom.getServerTime)
 
 let devPublicRoute = "dev\\goco-backend\\public";
 let productionPublicRoute = "/root/goco-backend/public";
