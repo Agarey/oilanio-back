@@ -1463,7 +1463,8 @@ const getCourseCommentsWithCourseId = (request, response) => {
 }
 
 const getStudentById = (request, response) => {
-    const { studentId } = request.body
+    const studentId = request.body['student_id']
+    console.log("getStudentById", request.body);
     pool.query('SELECT * FROM oc_students where id=$1', [studentId], (error, results) => {
          if (error) {
              throw error
