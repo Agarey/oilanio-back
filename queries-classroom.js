@@ -37,7 +37,7 @@ const sendEmail = async (emailsTo, title, message) => {
     pool: true,
     auth: {
       user: 'oilanedu@gmail.com',
-      pass: 'fvkfoycauxwqpmfz'
+      pass: 'jxkcvrkchclgewiu'
     }
   });
 
@@ -165,6 +165,46 @@ const createMarathoneTicket = async (request, response) => {
       } 
     ) 
   };
+
+const restorePassword = (request, response) => {
+    const {role, relogin, email, code} = request.body;
+
+    console.log(role, relogin, email, code);
+
+    pool.query(
+        "SELECT * FROM oc_" +
+          role +
+          "s WHERE " + (role === "teacher" ? "url" : "nickname") + " = $1",
+          [relogin]
+        , (error, results) => {
+        if (error) {
+            throw error
+        }
+        if (results.rows.length === 1) {
+            sendEmail([email], `Код для восстановление пароля`, code); 
+            response.status(200).send(results.rows)
+        } else {
+            response.status(404).send("Такого пользователя не существует")
+        }
+        
+    })
+
+}
+
+const updatePassword = (request, response) => {
+    const { newPassword, nick } = request.body
+
+    pool.query(
+        'UPDATE oc_users SET password = $1 WHERE nick = $2',
+        [newPassword, nick],
+        (error, results) => {
+            if (error) {
+                throw error
+            }
+            response.status(200).send("Password updated")
+        }
+    )
+}
 
 const registerUser = async (req, res) => {
   const role = req.body.role;
@@ -1828,5 +1868,7 @@ export default {
   registerUser,
   loginUser,
   getCourseByProgramId,
-  getServerTime
+  getServerTime,
+  restorePassword,
+  updatePassword
 };
