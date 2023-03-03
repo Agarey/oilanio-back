@@ -998,13 +998,29 @@ const updateStudentProgramStatus = (request, response) => {
 }
 
 const addStudentProgram = (request, response) => {
-    const { studentId, courseId, programId } = request.body
+    const { nickname, programId } = request.body
 
-    pool.query('INSERT INTO oc_student_course_middleware (student_id, course_id, program_id) VALUES ($1, $2, $3)', [studentId, courseId, programId], (error, result) => {
+    pool.query("SELECT * from oc_students WHERE nickname = $1", [nickname], (error, result) => {
         if (error) {
-            throw error
+            throw error;
         }
-        response.status(201).send(`Program added with ID: ${result.insertId}`)
+        if (result.rows.length > 0) {
+            const studentId = result.rows[0].id;
+            pool.query("SELECT course_id as id from oc_programs WHERE id = $1", [programId], (error, result2) => {
+                if (error) {
+                    throw error;
+                }
+                const courseId = result2.rows[0].id;
+                pool.query('INSERT INTO oc_student_course_middleware (student_id, course_id, program_id) VALUES ($1, $2, $3)', [studentId, courseId, programId], (error, result) => {
+                    if (error) {
+                        throw error;
+                    }
+                    response.status(201).send(`Program added with ID: ${result.insertId}`)
+                });
+            });
+        } else {
+            response.status(400).send("Логин не найден");
+        }
     })
 }
 
@@ -1769,6 +1785,17 @@ const getServerTime = (request, response) => {
     response.status(200).json(new Date())
 }
 
+const getCourseUrl = (request, response) => {
+    const { url } = request.body
+    pool.query('SELECT * FROM oc_courses WHERE url = $1' , [url], (error, results) => {
+      if (error) {
+        throw error
+      }
+      console.log('course sent');
+      response.status(200).json(results.rows)
+    })
+}
+
 export default {
   createTicket,
   getCaptcha,
@@ -1870,5 +1897,6 @@ export default {
   getCourseByProgramId,
   getServerTime,
   restorePassword,
-  updatePassword
+  updatePassword,
+  getCourseUrl
 };

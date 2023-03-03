@@ -329,6 +329,7 @@ app.post('/createStudentAndProgram', db_classroom.createStudentAndProgram)
 app.get('/getServerTime', db_classroom.getServerTime)
 app.post('/restorePassword', db_classroom.restorePassword)
 app.put('/updatePassword', db_classroom.updatePassword)
+app.post('/getCourseUrl', db_classroom.getCourseUrl)
 
 let devPublicRoute = "dev\\goco-backend\\public";
 let productionPublicRoute = "/root/goco-backend/public";
