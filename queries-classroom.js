@@ -790,6 +790,7 @@ const getTeacherByCourse = (request, response) => {
 
 const getTeacherByUrl = (request, response) => {
   const url = request.params.url;
+//   console.log("getTeacherByUrl");
 
   pool.query('SELECT * FROM oc_teachers where url=$1', [url], (error, results) => {
       if (error) {
@@ -806,7 +807,7 @@ const getTeacherByUrl = (request, response) => {
 
 const getProgramsByTeacherId = (request, response) => {
   const id = request.params.id;
-  pool.query('SELECT oc_programs.id, oc_programs.title, oc_programs.teacher_id, oc_programs.course_id, oc_courses.title as "course_title", oc_courses.start_date, oc_courses.end_date, (select count(id) from oc_lessons where oc_programs.id = oc_lessons.program_id) as "lessons_count", (SELECT COUNT(id) FROM oc_student_course_middleware WHERE program_id=oc_programs.id) as studentQty FROM oc_programs INNER JOIN oc_courses on oc_programs.course_id = oc_courses.id where oc_programs.teacher_id=$1 order by oc_programs.course_id desc, oc_programs.id asc', [id], (error, results) => {
+  pool.query('SELECT oc_programs.id, oc_programs.lesson_duration, oc_programs.title, oc_programs.teacher_id, oc_programs.course_id, oc_courses.title as "course_title", oc_courses.start_date, oc_courses.end_date, (select count(id) from oc_lessons where oc_programs.id = oc_lessons.program_id) as "lessons_count", (SELECT COUNT(id) FROM oc_student_course_middleware WHERE program_id=oc_programs.id) as studentQty FROM oc_programs INNER JOIN oc_courses on oc_programs.course_id = oc_courses.id where oc_programs.teacher_id=$1 order by oc_programs.course_id desc, oc_programs.id asc', [id], (error, results) => {
     if (error) {
           response.status(500).json('error');
           console.error(error);
@@ -820,7 +821,7 @@ const getProgramsByTeacherId = (request, response) => {
 
 const getProgramsByStudentId = (request, response) => {
   const id = request.params.id;
-  pool.query('SELECT oc_programs.id, oc_programs.title, oc_programs.teacher_id, oc_programs.course_id, oc_courses.title as "course_title", oc_courses.start_date, oc_courses.end_date, oc_student_course_middleware.*, (select count(id) from oc_lessons where oc_programs.id = oc_lessons.program_id) as "lessons_count" FROM oc_programs INNER JOIN oc_courses on oc_programs.course_id = oc_courses.id INNER JOIN oc_student_course_middleware on oc_programs.id = oc_student_course_middleware.program_id where oc_student_course_middleware.student_id=$1 order by oc_programs.id asc', [id], (error, results) => {
+  pool.query('SELECT oc_programs.id, oc_programs.lesson_duration, oc_programs.title, oc_programs.teacher_id, oc_programs.course_id, oc_courses.title as "course_title", oc_courses.start_date, oc_courses.end_date, oc_student_course_middleware.*, (select count(id) from oc_lessons where oc_programs.id = oc_lessons.program_id) as "lessons_count" FROM oc_programs INNER JOIN oc_courses on oc_programs.course_id = oc_courses.id INNER JOIN oc_student_course_middleware on oc_programs.id = oc_student_course_middleware.program_id where oc_student_course_middleware.student_id=$1 order by oc_programs.id asc', [id], (error, results) => {
       if (error) {
           response.status(500).json('error');
           console.error(error);
@@ -1084,6 +1085,20 @@ const updateProgramCourseAndTitle = (request, response) => {
     )
 }
 
+const updateProgramDuration = (request, response) => {
+    const { programId, duration } = request.body
+
+    pool.query(
+        'UPDATE oc_programs SET lesson_duration = $2 WHERE id = $1',
+        [programId, duration],
+        (error, results) => {
+            if (error) {
+                throw error
+            }
+            response.status(200).send(`Program updated`)
+        }
+    )
+}
 
 const updateCourse = (request, response) => {
     const { 
@@ -1788,12 +1803,102 @@ const getServerTime = (request, response) => {
 const getCourseUrl = (request, response) => {
     const { url } = request.body
     pool.query('SELECT * FROM oc_courses WHERE url = $1' , [url], (error, results) => {
-      if (error) {
-        throw error
-      }
-      console.log('course sent');
-      response.status(200).json(results.rows)
+        if (error) {
+            throw error
+          }
+          console.log('course sent');
+          response.status(200).json(results.rows)
+        })
+    }
+
+const updateTeacherData = (request, response) => {
+    const id = parseInt(request.params.id)
+    const { surname, name, patronymic, skills, experience, avatar, url, teacherDescription, email, phone } = request.body
+    // console.log(surname, name, patronymic, skills, experience, avatar, url, teacherDescription, email, phone, "surname, name, patronymic, skills, experience, avatar, url, teacherDescription, email, phone");
+
+    pool.query('UPDATE oc_teachers SET surname = $1, name = $2, patronymic = $3, skills = $4, experience = $5, avatar = $6, url = $7, description = $8, email = $10, phone = $11 WHERE id = $9', [surname, name, patronymic, skills, experience, avatar, url, teacherDescription, id, email, phone], (error, result) => {
+        if (error) {
+            throw error
+        }
+        // response.status(201).send(`Teacher added with ID: ${result.insertId}`)
+        // updateTeacher
+        // fullname = $1
     })
+}
+
+const getStudentByUrl = (request, response) => {
+    // console.log("getStudentByUrl");
+    const studentUrl = request.body['studentUrl']
+    // console.log(studentUrl, "getStudentByUrl", request.body);
+    pool.query('SELECT * FROM oc_students where nickname=$1', [studentUrl], (error, results) => {
+         if (error) {
+             throw error
+         }
+         console.log('student sent');
+         response.status(200).json(results.rows)
+     })
+ }
+
+const updateStudentDataFromProfile = (request, response) => {
+    const { name, surname, patronymic, id, img, phone, email, nickname } = request.body
+    // console.log(name, surname, patronymic, id, img, phone, email, nickname, "name, surname, patronymic, id, img, phone, email, nickname");
+
+    pool.query(
+        'UPDATE oc_students SET name = $1, surname = $2, patronymic = $3, img = $5, phone = $6, email = $7, nickname = $8  WHERE id = $4',
+        [name, surname, patronymic, id, img, phone, email, nickname],
+        (error, results) => {
+            if (error) {
+                throw error
+            }
+            response.status(200).send(`Student program modified`)
+        }
+    )
+}
+
+const getAllCoursesAndProgramsOfStudent = (request, response) => {
+    const {studentId} = request.query;
+    pool.query('SELECT * FROM oc_student_course_middleware where student_id=$1', [
+        studentId
+    ], (error, results) => {
+      if (error) {
+            response.status(500).json('error');
+            console.error(error);
+            
+        }else {
+            response.status(200).json(results.rows);
+            
+        }
+    })
+  }
+
+const updateUserLogin = (request, response) => {
+    const { nick, id, roleId } = request.body
+
+    pool.query(
+        'UPDATE oc_users SET nick = $1 WHERE person_id = $2 AND role_id = $3',
+        [nick, id, roleId],
+        (error, results) => {
+            if (error) {
+                throw error
+            }
+            response.status(200).send(`Student program modified`)
+        }
+    )
+}
+
+const updateUserPassword = (request, response) => {
+    const { password, id, roleId } = request.body
+
+    pool.query(
+        'UPDATE oc_users SET password = $1 WHERE person_id = $2 AND role_id = $3',
+        [password, id, roleId],
+        (error, results) => {
+            if (error) {
+                throw error
+            }
+            response.status(200).send(`Student program modified`)
+        }
+    )
 }
 
 export default {
@@ -1847,6 +1952,7 @@ export default {
   getCurrentProgram,
   getStudentCourseInfo,
   updateProgramCourseAndTitle,
+  updateProgramDuration,
   updateLesson,
   deleteLesson,
   updateExercise,
@@ -1898,5 +2004,11 @@ export default {
   getServerTime,
   restorePassword,
   updatePassword,
-  getCourseUrl
+  getCourseUrl,
+  updateTeacherData,
+  getStudentByUrl,
+  updateStudentDataFromProfile,
+  getAllCoursesAndProgramsOfStudent,
+  updateUserLogin,
+  updateUserPassword
 };
