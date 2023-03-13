@@ -23,10 +23,7 @@ const pool = new Pool(productionPoolOptions);
 const stuffEmails = [
   'azat.aliaskar@gmail.com',
   'alexdrumm13@gmail.com',
-  'oilanabaz7@gmail.com',
-  'zznnznzn3@gmail.com',
-  'Anara2607@mail.ru',
-  'stadjun.kon@gmail.com'
+  'Anara2607@mail.ru'
 ];
 
 const sendEmail = async (emailsTo, title, message) => {
@@ -1250,7 +1247,12 @@ const updateAnswerComment = (request, response) => {
 
 const getCoursesByTeacherId = (request, response) => {
     const id = request.params.id;
-    pool.query('SELECT oc_courses.*, count(oc_programs.id) AS program_count FROM oc_courses LEFT JOIN oc_programs ON oc_programs.course_id = oc_courses.id WHERE oc_courses.teacher_id=$1 GROUP BY oc_courses.id', [id], (error, results) => {
+    pool.query('SELECT oc_courses.*, oc_course_categories.name AS category_name, count(oc_programs.id) AS program_count ' + 
+      'FROM oc_courses '+
+      'LEFT JOIN oc_programs ON oc_programs.course_id = oc_courses.id ' +
+      'LEFT JOIN oc_course_categories ON oc_courses.category_id = oc_course_categories.id ' +
+      'WHERE oc_courses.teacher_id=$1 ' +
+      'GROUP BY oc_courses.id, oc_course_categories.name', [id], (error, results) => {
       if (error) {
           response.status(500).json('error');
           console.error(error);
