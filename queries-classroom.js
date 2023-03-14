@@ -23,7 +23,10 @@ const pool = new Pool(productionPoolOptions);
 const stuffEmails = [
   'azat.aliaskar@gmail.com',
   'alexdrumm13@gmail.com',
-  'Anara2607@mail.ru'
+  'oilanabaz7@gmail.com',
+  'zznnznzn3@gmail.com',
+  'Anara2607@mail.ru',
+  'stadjun.kon@gmail.com'
 ];
 
 const sendEmail = async (emailsTo, title, message) => {
@@ -178,8 +181,25 @@ const restorePassword = (request, response) => {
             throw error
         }
         if (results.rows.length === 1) {
-            sendEmail([email], `Код для восстановление пароля`, code); 
-            response.status(200).send(results.rows)
+            pool.query(
+                "SELECT * FROM oc_" +
+                  role +
+                  "s WHERE email = $1",
+                  [email]
+                , (error, results) => {
+                if (error) {
+                    throw error
+                }
+                if (results.rows.length === 1) {
+                    sendEmail([email], `Код для восстановление пароля`, code); 
+                    response.status(200).send(results.rows)
+                } else {
+                    response.status(404).send("Неправильный email, напишите нам на почту oilanedu@gmail.com")
+                }
+                
+            })
+            // sendEmail([email], `Код для восстановление пароля`, code); 
+            // response.status(200).send(results.rows)
         } else {
             response.status(404).send("Такого пользователя не существует")
         }
@@ -507,6 +527,35 @@ const createStudentAndProgram = (request, response) => {
     });
 };
 
+const createGroup = (request, response) => {
+    const { teacherId, title, programId } = request.body;
+    
+    pool.query('INSERT INTO oc_groups (title, teacher_id, program_id) VALUES ($2, $1, $3)', [teacherId, title, programId], (error, result) => {
+        if (error) {
+            throw error;
+        }
+        pool.query("SELECT max(id) as id from oc_groups", (error, result) => {
+            if (error) {
+                throw error;
+            }
+            response.status(200).json(result.rows[0])
+        });
+    });
+  
+};
+
+const createStudentGroup = (request, response) => {
+    const { groupId, studentId, courseId, programId } = request.body;
+    
+    pool.query('INSERT INTO oc_student_group_middleware (group_id, student_id, course_id, program_id) VALUES ($1, $2, $3, $4)', [groupId, studentId, courseId, programId], (error, result) => {
+        if (error) {
+            throw error;
+        }
+        response.status(201).send();
+    });
+  
+};
+
 const createLesson = (request, response) => {
     const { lessonTitle, lessonOrder, lessonCourseId, lessonTesis, lessonStartTime, lessonProgramId } = request.body
 
@@ -739,30 +788,26 @@ const getCourseStages = (request, response) => {
 }
 
 const getProgramsById = (request, response) => {
-  const id = parseInt(request.params.id);
+    const id = parseInt(request.params.id);
+  
 
-  pool.query(`
-    SELECT p.*, COUNT(DISTINCT l.id) AS lessons_count, COUNT(DISTINCT scm.student_id) AS students_count
-    FROM oc_programs p
-    LEFT JOIN oc_lessons l ON p.id = l.program_id
-    LEFT JOIN oc_student_course_middleware scm ON p.id = scm.program_id
-    WHERE p.course_id = $1
-    GROUP BY p.id;
-  `, [id], (error, results) => {
-    if (error) {
-      response.status(500).json('error');
-      console.error(error);
-    } else {
-      response.status(200).json(results.rows);
-    }
-  })
+    pool.query('SELECT * FROM oc_programs where course_id=$1', [id], (error, results) => {
+        if (error) {
+            response.status(500).json('error');
+            console.error(error);
+            
+        }else {
+            response.status(200).json(results.rows);
+            
+        }
+    })
 }
 
 const getCurrentProgram = (request, response) => {
     const id = parseInt(request.params.id);
   
 
-    pool.query('SELECT * FROM oc_programs where id=$1', [id], (error, results) => {
+    pool.query('SELECT oc_programs.*, oc_courses.description course_description FROM oc_programs INNER JOIN oc_courses ON oc_courses.id = oc_programs.course_id WHERE oc_programs.id=$1', [id], (error, results) => {
         if (error) {
             response.status(500).json('error');
             console.error(error);
@@ -905,14 +950,14 @@ const getStudentLessonsByProgramId_old = (request, response) => {
 const getStudentLessonsByProgramId = (request, response) => {
     const { studentId, programId } = request.body;
     const answer_status = 'correct'
-    console.log('getStudentLessonsByProgramId', request.body)
+    // console.log('getStudentLessonsByProgramId', request.body)
     pool.query('SELECT oc_lessons.id, oc_lessons.title, oc_lessons.course_id, oc_lessons.tesis, oc_lessons.start_time, oc_lessons.lesson_order, oc_lessons.program_id, oc_lessons.translation_link as default_lesson_link, (SELECT COUNT(id) FROM oc_exercises WHERE oc_lessons.id=oc_exercises.lesson_id) AS all_exer,  (SELECT COUNT(id) FROM oc_answers WHERE oc_lessons.id=oc_answers.lesson_id AND oc_answers.student_id=$1) AS done_exer, FLOOR(COALESCE(NULLIF((SELECT COUNT(id) FROM oc_answers WHERE oc_lessons.id=oc_answers.lesson_id AND oc_answers.student_id=$1 AND oc_answers.status=$3), 0) * 100, 0) / NULLIF((SELECT COUNT(id) FROM oc_exercises WHERE oc_lessons.id=oc_exercises.lesson_id), 0)) AS score, oc_student_course_middleware.student_id, oc_student_course_middleware.paid, oc_schedule.start_time as "personal_time", oc_schedule.translation_link as "personal_lesson_link", oc_schedule.status FROM oc_lessons INNER JOIN oc_student_course_middleware ON oc_student_course_middleware.program_id = oc_lessons.program_id LEFT JOIN oc_schedule ON oc_lessons.id = oc_schedule.lesson_id AND oc_student_course_middleware.student_id=oc_schedule.student_id WHERE oc_lessons.program_id = $2     AND oc_student_course_middleware.program_id = $2     AND oc_student_course_middleware.student_id = $1 ORDER BY oc_lessons.lesson_order', [studentId, programId, answer_status], (error, results) => {
         if (error) {
             response.status(500).json('error');
             console.log('getStudentLessonsByProgramId', error)
         }else {
             response.status(200).json(results.rows);
-            console.log('getStudentLessonsByProgramId', results.rows)
+            // console.log('getStudentLessonsByProgramId', results.rows)
         }
     })
 }
@@ -937,10 +982,41 @@ const getStudentsByTeacherId = (request, response) => {
           console.error(error);
       }else {
           response.status(200).json(results.rows);
+          console.log("students", results.rows);
           
       }
   })
 }
+
+const getStudentsGroupsByTeacherId = (request, response) => {
+    const {id, sort} = request.body;
+  
+    pool.query('SELECT oc_student_group_middleware.student_id, oc_student_group_middleware.course_id, oc_student_group_middleware.program_id, oc_groups.*, oc_courses.title as "course_title", oc_courses.url as "course_url", oc_students.surname, oc_students.name, oc_students.patronymic, oc_students.nickname, oc_students.img, (select count(id) from oc_lessons where oc_student_group_middleware.program_id = oc_lessons.program_id) as "lessons_count", oc_programs.title as "program_title" from oc_student_group_middleware INNER JOIN oc_courses on oc_student_group_middleware.course_id = oc_courses.id INNER JOIN oc_groups on oc_student_group_middleware.group_id = oc_groups.id INNER JOIN oc_programs on oc_student_group_middleware.program_id = oc_programs.id INNER JOIN oc_students on oc_student_group_middleware.student_id = oc_students.id where oc_courses.teacher_id=$1 ORDER BY $2', [id, sort], (error, results) => {
+        if (error) {
+            response.status(500).json('error');
+            console.error(error);
+        }else {
+            response.status(200).json(results.rows);
+            console.log("groups", results.rows);
+            
+        }
+    })
+  }
+
+  const getGroupsByTeacherId = (request, response) => {
+    const {id} = request.body;
+  
+    pool.query('SELECT DISTINCT oc_student_group_middleware.course_id, oc_student_group_middleware.program_id, oc_groups.*, oc_courses.title as "course_title", oc_courses.url as "course_url", oc_programs.title as "program_title" from oc_student_group_middleware INNER JOIN oc_courses on oc_student_group_middleware.course_id = oc_courses.id INNER JOIN oc_groups on oc_student_group_middleware.group_id = oc_groups.id INNER JOIN oc_programs on oc_student_group_middleware.program_id = oc_programs.id where oc_courses.teacher_id=$1 ORDER BY oc_groups.id', [id], (error, results) => {
+        if (error) {
+            response.status(500).json('error');
+            console.error(error);
+        }else {
+            response.status(200).json(results.rows);
+            console.log("groups", results.rows);
+            
+        }
+    })
+  }
 
 const getExercisesByLessonId = (request, response) => {
   const id = request.params.id;
@@ -1072,11 +1148,11 @@ const createDefaultRoom = (request, response) => {
 }
 
 const updateProgramCourseAndTitle = (request, response) => {
-    const { programId, programTitle, courseId } = request.body
+    const { programId, programTitle, courseId, programDesc } = request.body
 
     pool.query(
-        'UPDATE oc_programs SET title = $2, course_id = $3 WHERE id = $1',
-        [programId, programTitle, courseId],
+        'UPDATE oc_programs SET title = $2, course_id = $3, description = $4 WHERE id = $1',
+        [programId, programTitle, courseId, programDesc],
         (error, results) => {
             if (error) {
                 throw error
@@ -1105,32 +1181,16 @@ const updateCourse = (request, response) => {
     const { 
         courseId,
         title, 
-        description, 
-        fullPrice,
-        monthlyPrice,
-        startDate,
-        endDate,
-        program,
         courseUrl,
-        translationLink,
-        teacherId,
         courseCategory 
     } = request.body;
 
     pool.query(
-        'UPDATE oc_courses SET title = $2, description = $3, full_price = $4, monthly_price = $5, start_date = $6, end_date = $7, program = $8, url = $9, translation_link = $10, teacher_id = $11, category_id = $12 WHERE id = $1',
+        'UPDATE oc_courses SET title = $2, url = $3, category_id = $4 WHERE id = $1',
         [
             courseId,
-            title, 
-            description, 
-            +fullPrice,
-            +monthlyPrice,
-            startDate,
-            endDate,
-            program,
+            title,
             courseUrl,
-            translationLink,
-            teacherId,
             courseCategory 
         ],
         (error, results) => {
@@ -1251,12 +1311,7 @@ const updateAnswerComment = (request, response) => {
 
 const getCoursesByTeacherId = (request, response) => {
     const id = request.params.id;
-    pool.query('SELECT oc_courses.*, oc_course_categories.name AS category_name, count(oc_programs.id) AS program_count ' + 
-      'FROM oc_courses '+
-      'LEFT JOIN oc_programs ON oc_programs.course_id = oc_courses.id ' +
-      'LEFT JOIN oc_course_categories ON oc_courses.category_id = oc_course_categories.id ' +
-      'WHERE oc_courses.teacher_id=$1 ' +
-      'GROUP BY oc_courses.id, oc_course_categories.name', [id], (error, results) => {
+    pool.query('SELECT oc_courses.*, count(oc_programs.id) AS program_count FROM oc_courses LEFT JOIN oc_programs ON oc_programs.course_id = oc_courses.id WHERE oc_courses.teacher_id=$1 GROUP BY oc_courses.id', [id], (error, results) => {
       if (error) {
           response.status(500).json('error');
           console.error(error);
@@ -1554,18 +1609,6 @@ const getStudentById = (request, response) => {
 const getCourseById = (request, response) => {
     const { courseId } = request.body
     pool.query('SELECT * FROM oc_courses where id=$1', [courseId], (error, results) => {
-         if (error) {
-             throw error
-         }
-         console.log('course sent');
-         response.status(200).json(results.rows)
-     })
- }
-
-const getProgramById = (request, response) => {
-    const { programId } = request.body
-    console.log('programId', programId)
-    pool.query('SELECT p.*, c.title as course_title FROM oc_programs p JOIN oc_courses c ON p.course_id = c.id WHERE p.id = $1', [programId], (error, results) => {
          if (error) {
              throw error
          }
@@ -2029,5 +2072,8 @@ export default {
   getAllCoursesAndProgramsOfStudent,
   updateUserLogin,
   updateUserPassword,
-  getProgramById
+  getGroupsByTeacherId,
+  getStudentsGroupsByTeacherId,
+  createGroup,
+  createStudentGroup
 };
