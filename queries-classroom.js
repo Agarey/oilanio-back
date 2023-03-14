@@ -790,18 +790,22 @@ const getCourseStages = (request, response) => {
 const getProgramsById = (request, response) => {
     const id = parseInt(request.params.id);
   
-
-    pool.query('SELECT * FROM oc_programs where course_id=$1', [id], (error, results) => {
-        if (error) {
-            response.status(500).json('error');
-            console.error(error);
-            
-        }else {
-            response.status(200).json(results.rows);
-            
-        }
+    pool.query(`
+      SELECT p.*, COUNT(DISTINCT l.id) AS lessons_count, COUNT(DISTINCT scm.student_id) AS students_count
+      FROM oc_programs p
+      LEFT JOIN oc_lessons l ON p.id = l.program_id
+      LEFT JOIN oc_student_course_middleware scm ON p.id = scm.program_id
+      WHERE p.course_id = $1
+      GROUP BY p.id;
+    `, [id], (error, results) => {
+      if (error) {
+        response.status(500).json('error');
+        console.error(error);
+      } else {
+        response.status(200).json(results.rows);
+      }
     })
-}
+  }
 
 const getCurrentProgram = (request, response) => {
     const id = parseInt(request.params.id);
@@ -1962,6 +1966,18 @@ const updateUserPassword = (request, response) => {
     )
 }
 
+const getProgramById = (request, response) => {
+    const { programId } = request.body
+    console.log('programId', programId)
+    pool.query('SELECT p.*, c.title as course_title FROM oc_programs p JOIN oc_courses c ON p.course_id = c.id WHERE p.id = $1', [programId], (error, results) => {
+         if (error) {
+             throw error
+         }
+         console.log('course sent');
+         response.status(200).json(results.rows)
+     })
+ }
+
 export default {
   createTicket,
   getCaptcha,
@@ -2075,5 +2091,6 @@ export default {
   getGroupsByTeacherId,
   getStudentsGroupsByTeacherId,
   createGroup,
-  createStudentGroup
+  createStudentGroup,
+  getProgramById
 };
