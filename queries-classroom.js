@@ -408,6 +408,38 @@ const createCourse = (request, response) => {
     })
 }
 
+const createCourseAndProgram = (request, response) => {
+  const { title: courseTitle, courseUrl, teacherId, categoryId } = request.body.course
+  const { programTitle, programType } = request.body.program
+
+  console.log(request.body.course)
+  console.log(request.body.program)
+
+  pool.query('SELECT * FROM oc_courses WHERE url = $1', [courseUrl], (error, result) => {
+    if (error) {
+        throw error
+    }
+    if (result.rows.length > 0) {
+        // Если запись уже существует, возвращаем ошибку
+        response.status(400).send('Course with this URL already exists')
+    } else {
+        // Если запись не существует, осуществляем вставку новой записи
+        pool.query('INSERT INTO oc_courses (title, url, teacher_id, category_id) VALUES ($1, $2, $3, $4) RETURNING id', [courseTitle, courseUrl, teacherId, categoryId], (error, result) => {
+            if (error) {
+                throw error
+            }
+            const courseId = result.rows[0].id
+            pool.query('INSERT INTO oc_programs (title, course_id, teacher_id, type) VALUES ($1, $2, $3, $4)', [programTitle, courseId, teacherId, programType], (error, result) => {
+                if (error) {
+                    throw error
+                }
+                response.status(201).send(`Course and program added with course ID: ${courseId}`)
+            })
+        })
+    }
+  })
+}
+
 const createCourseTarget = (request, response) => {
     const { targetTitle, targetImg, targetText, targetCourseId } = request.body
 
@@ -1315,14 +1347,13 @@ const updateAnswerComment = (request, response) => {
 
 const getCoursesByTeacherId = (request, response) => {
     const id = request.params.id;
-    pool.query('SELECT oc_courses.*, count(oc_programs.id) AS program_count FROM oc_courses LEFT JOIN oc_programs ON oc_programs.course_id = oc_courses.id WHERE oc_courses.teacher_id=$1 GROUP BY oc_courses.id', [id], (error, results) => {
-      if (error) {
-          response.status(500).json('error');
-          console.error(error);
-          
-      }else {
-          response.status(200).json(results.rows);
-      }
+    pool.query('SELECT oc_courses.*, count(oc_programs.id) AS program_count, oc_course_categories.name AS category_name FROM oc_courses LEFT JOIN oc_programs ON oc_programs.course_id = oc_courses.id LEFT JOIN oc_course_categories ON oc_course_categories.id = oc_courses.category_id WHERE oc_courses.teacher_id=$1 GROUP BY oc_courses.id, oc_course_categories.name', [id], (error, results) => {
+        if (error) {
+            response.status(500).json('error');
+            console.error(error);
+        } else {
+            response.status(200).json(results.rows);
+        }
     })
 }
 
@@ -2092,5 +2123,6 @@ export default {
   getStudentsGroupsByTeacherId,
   createGroup,
   createStudentGroup,
-  getProgramById
+  getProgramById,
+  createCourseAndProgram
 };

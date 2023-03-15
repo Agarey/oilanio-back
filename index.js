@@ -342,6 +342,7 @@ app.put('/updateStudentDataFromProfile', db_classroom.updateStudentDataFromProfi
 app.get('/getAllCoursesAndProgramsOfStudent', db_classroom.getAllCoursesAndProgramsOfStudent)
 app.put('/updateUserLogin', db_classroom.updateUserLogin)
 app.put('/updateUserPassword', db_classroom.updateUserPassword)
+app.post('/createCourseAndProgram', db_classroom.createCourseAndProgram)
 
 let devPublicRoute = "dev\\goco-backend\\public";
 let productionPublicRoute = "/root/goco-backend/public";
