@@ -429,16 +429,52 @@ const createCourseAndProgram = (request, response) => {
                 throw error
             }
             const courseId = result.rows[0].id
-            pool.query('INSERT INTO oc_programs (title, course_id, teacher_id, type) VALUES ($1, $2, $3, $4)', [programTitle, courseId, teacherId, programType], (error, result) => {
+            pool.query('INSERT INTO oc_programs (title, course_id, teacher_id, type) VALUES ($1, $2, $3, $4) RETURNING id', [programTitle, courseId, teacherId, programType], (error, result) => {
                 if (error) {
                     throw error
                 }
-                response.status(201).send(`Course and program added with course ID: ${courseId}`)
+                const programId = result.rows[0].id
+                response.status(201).json({ courseId: courseId, programId: programId });
             })
         })
     }
   })
 }
+
+const createNewLessonAndExercises = (request, response) => {
+  const { title, description, program_id, course_id, exercises } = request.body;
+  console.log('request.body', request.body)
+  // Add the lesson to the oc_lessons table
+  pool.query(
+    'INSERT INTO oc_lessons (title, tesis, program_id, course_id, lesson_order) SELECT $1, $2, $3, $4, COALESCE(MAX(lesson_order), 0) + 1 FROM oc_lessons WHERE program_id = $3 RETURNING id;',
+    [title, description, program_id, course_id],
+    (error, result) => {
+      if (error) {
+        throw error;
+      }
+      const lessonId = result.rows[0].id;
+
+      // Add the exercises to the oc_exercises table
+      const validExercises = exercises.filter(exercise => exercise !== undefined && exercise !== null);
+      let completedQueries = 0;
+      validExercises.forEach((exercise) => {
+        pool.query(
+          'INSERT INTO oc_exercises (lesson_id, exer_order, text, correct_answer) VALUES ($1, $2, $3, $4);',
+          [lessonId, exercise.index, exercise.description, exercise.value],
+          (error, result) => {
+            if (error) {
+              throw error;
+            }
+            completedQueries++;
+            if (completedQueries === validExercises.length) {
+              response.status(201).send(`Lesson added with ID: ${lessonId}`);
+            }
+          }
+        );
+      });
+    }
+  );
+};
 
 const createCourseTarget = (request, response) => {
     const { targetTitle, targetImg, targetText, targetCourseId } = request.body
@@ -649,6 +685,17 @@ const createProgram = (request, response) => {
             throw error
         }
         response.status(201).send(`Program added with ID: ${result.insertId}`)
+    })
+}
+
+const createNewProgram = (request, response) => {
+    const { programTitle, programCourseId, programTeacherId, programType } = request.body
+    pool.query('INSERT INTO oc_programs (title, course_id, teacher_id, type) VALUES ($1, $2, $3, $4) RETURNING id', [programTitle, programCourseId, programTeacherId, programType], (error, result) => {
+        if (error) {
+            throw error
+        }
+        const programId = result.rows[0].id;
+        response.status(201).json({ programId });
     })
 }
 
@@ -1227,6 +1274,31 @@ const updateCourse = (request, response) => {
             courseId,
             title,
             courseUrl,
+            courseCategory 
+        ],
+        (error, results) => {
+            if (error) {
+                throw error
+            }
+            response.status(200).send(`Course updated`)
+        }
+    )
+}
+
+const updateNewCourse = (request, response) => {
+    const { 
+        courseId,
+        title, 
+        description,
+        courseCategory 
+    } = request.body;
+
+    pool.query(
+        'UPDATE oc_courses SET title = $2, description = $3, category_id = $4 WHERE id = $1',
+        [
+            courseId,
+            title,
+            description,
             courseCategory 
         ],
         (error, results) => {
@@ -2029,6 +2101,7 @@ export default {
   createCategory,
   createSCM,
   createProgram,
+  createNewProgram,
   getTeachers,
   getCategories,
   getCourses,
@@ -2100,6 +2173,7 @@ export default {
   getPassedStudents,
   getAllStudents,
   updateCourse,
+  updateNewCourse,
   updateStudentData,
   deleteStudentOneProgram,
   deleteStudent,
@@ -2124,5 +2198,6 @@ export default {
   createGroup,
   createStudentGroup,
   getProgramById,
-  createCourseAndProgram
+  createCourseAndProgram,
+  createNewLessonAndExercises
 };

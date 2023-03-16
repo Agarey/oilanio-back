@@ -253,6 +253,7 @@ app.post('/createExercise', db_classroom.createExercise)
 app.post('/createCategory', db_classroom.createCategory)
 app.post('/createSCM', db_classroom.createSCM)
 app.post('/createProgram', db_classroom.createProgram)
+app.post('/createNewProgram', db_classroom.createNewProgram)
 app.get('/getTeachers', db_classroom.getTeachers)
 app.get('/getCategories', db_classroom.getCategories)
 app.get('/getCourses', db_classroom.getCourses)
@@ -291,6 +292,7 @@ app.put('/updateStudentData', db_classroom.updateStudentData)
 app.put('/updateProgramCourseAndTitle', db_classroom.updateProgramCourseAndTitle)
 app.put('/updateProgramDuration', db_classroom.updateProgramDuration)
 app.put('/updateCourse', db_classroom.updateCourse)
+app.put('/updateNewCourse', db_classroom.updateNewCourse)
 app.put('/updateLesson', db_classroom.updateLesson)
 app.delete('/deleteLesson', db_classroom.deleteLesson)
 app.delete('/deleteStudentOneProgram', db_classroom.deleteStudentOneProgram)
@@ -343,6 +345,7 @@ app.get('/getAllCoursesAndProgramsOfStudent', db_classroom.getAllCoursesAndProgr
 app.put('/updateUserLogin', db_classroom.updateUserLogin)
 app.put('/updateUserPassword', db_classroom.updateUserPassword)
 app.post('/createCourseAndProgram', db_classroom.createCourseAndProgram)
+app.post('/createNewLessonAndExercises', db_classroom.createNewLessonAndExercises)
 
 let devPublicRoute = "dev\\goco-backend\\public";
 let productionPublicRoute = "/root/goco-backend/public";
