@@ -1281,9 +1281,10 @@ const deleteExercise = (request, response) => {
 }
 
 const updateAnswerStatus = (request, response) => {
-    const { id, status } = request.body
+    const { id, status, mark } = request.body
+    console.log("mark",id, status, mark);
 
-    pool.query('UPDATE oc_answers SET status = $2 WHERE id = $1', [id, status], (error, results) => {
+    pool.query('UPDATE oc_answers SET status = $2, teacher_mark = $3 WHERE id = $1', [id, status, mark], (error, results) => {
         if (error) {
             throw error
         }
