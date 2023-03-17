@@ -1086,6 +1086,114 @@ const getStudentsGroupsByTeacherId = (request, response) => {
     })
   }
 
+  const getAnswersStatistics = (request, response) => {
+    const { id, sort, studentId, programId, ansState } = request.body;
+
+    let query = `SELECT DISTINCT 
+                  oc_students.id AS student_id,
+                  oc_students.surname,
+                  oc_students.name,
+                  oc_courses.id AS course_id,
+                  oc_courses.title AS course_title,
+                  oc_programs.id AS program_id,
+                  oc_programs.title AS program_title,
+                  oc_lessons.start_time AS lesson_start_time,
+                  oc_lessons.id AS lesson_id,
+                  oc_schedule.start_time AS student_lesson_start_time,
+                  oc_lessons.title AS lesson_title,
+                  oc_lessons.lesson_order,
+                  oc_answers.student_comment,
+                  (COUNT(oc_exercises.id) * 5) AS total_possible_mark,
+                  SUM(oc_answers.teacher_mark) AS total_obtained_mark,
+                  COUNT(oc_answers.id) = COUNT(oc_exercises.id) AS is_checked,
+                  100 / (COUNT(oc_exercises.id) * 5) * SUM(oc_answers.teacher_mark) AS percent_completed,
+                  CASE 
+                    WHEN COUNT(oc_answers.id) = 0 THEN 'Not started'
+                    WHEN COUNT(oc_answers.id) = COUNT(oc_exercises.id) THEN 'Checked'
+                    ELSE 'In progress' 
+                  END AS status,
+                  CASE 
+                    WHEN COUNT(oc_answers.id) = 0 THEN NULL
+                    ELSE SUM(oc_answers.teacher_mark) / COUNT(DISTINCT oc_exercises.id) 
+                  END AS average_mark
+                FROM
+                  oc_students
+                  INNER JOIN oc_answers ON oc_students.id = oc_answers.student_id
+                  INNER JOIN oc_lessons ON oc_answers.lesson_id = oc_lessons.id
+                  INNER JOIN oc_schedule ON oc_lessons.id = oc_schedule.lesson_id AND oc_students.id = oc_schedule.student_id
+                  INNER JOIN oc_courses ON oc_lessons.course_id = oc_courses.id
+                  INNER JOIN oc_programs ON oc_courses.id = oc_programs.course_id
+                  INNER JOIN oc_exercises ON oc_lessons.id = oc_exercises.lesson_id
+                WHERE
+                  oc_courses.teacher_id = $1`;
+
+    let values = [id];
+
+    if (studentId) {
+      query += ` AND oc_students.id = $2`;
+      values.push(studentId);
+    }
+
+    if (programId) {
+      query += ` AND oc_programs.id = $${values.length + 1}`;
+      values.push(programId);
+    }
+
+    query += ` GROUP BY 
+                  oc_students.id, 
+                  oc_courses.id, 
+                  oc_programs.id, 
+                  oc_lessons.id, 
+                  oc_schedule.id, 
+                  oc_answers.student_comment 
+              HAVING 
+                COUNT(oc_exercises.id) > 0`;
+
+    if (ansState !== undefined) {
+      if (ansState === true) {
+        query += ` AND COUNT(oc_answers.id) = COUNT(DISTINCT oc_exercises.id)`;
+      } else {
+        query += ` AND COUNT(oc_answers.id) < COUNT(DISTINCT oc_exercises.id)`;
+      }
+    }
+
+    if (sort) {
+      query += ` ORDER BY ${sort}`;
+    }
+
+    pool.query(query, values, (error, results) => {
+      if (error) {
+        response.status(500).json('error');
+        console.error(error);
+      } else {
+        response.status(200).json(results.rows);
+        console.log("students groups", results.rows);
+      }
+    });
+  };
+
+  const getAssignmentsByTeacherId = (request, response) => {
+    const { id } = request.body;
+
+    pool.query('SELECT DISTINCT oc_answers.id as "answer_id", oc_exercises.id as "exercise_id", oc_exercises.exer_order as "exercise_order", oc_lessons.id as "lesson_id", oc_students.id as "student_id", oc_students.name as "student_name", oc_exercises.text as "exercise_text", oc_answers.text as "answer_text", oc_answers.student_comment as "student_comment", oc_answers.teacher_mark as "teacher_mark" ' +
+      'FROM oc_students ' +
+      'INNER JOIN oc_answers ON oc_students.id = oc_answers.student_id ' +
+      'INNER JOIN oc_lessons ON oc_answers.lesson_id = oc_lessons.id ' +
+      'INNER JOIN oc_courses ON oc_lessons.course_id = oc_courses.id ' +
+      'INNER JOIN oc_programs ON oc_courses.id = oc_programs.course_id ' +
+      'INNER JOIN oc_exercises ON oc_lessons.id = oc_exercises.lesson_id ' +
+      'WHERE oc_programs.teacher_id = $1 ' +
+      'ORDER BY oc_answers.id', [id], (error, results) => {
+      if (error) {
+        response.status(500).json('error');
+        console.error(error);
+      } else {
+        response.status(200).json(results.rows);
+        console.log("assignments", results.rows);
+      }
+    })
+  }
+
   const getGroupsByTeacherId = (request, response) => {
     const {id} = request.body;
   
@@ -2256,5 +2364,7 @@ export default {
   getProgramById,
   createCourseAndProgram,
   createNewLessonAndExercises,
-  getLessonById
+  getLessonById,
+  getAnswersStatistics,
+  getAssignmentsByTeacherId
 };
