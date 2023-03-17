@@ -1245,6 +1245,21 @@ const updateProgramCourseAndTitle = (request, response) => {
     )
 }
 
+const updateNewProgram = (request, response) => {
+    const { programId, title, type, courseId, teacherId } = request.body
+
+    pool.query(
+        'UPDATE oc_programs SET title = $2, type=$3, course_id = $4 WHERE id = $1',
+        [programId, title, type, courseId],
+        (error, results) => {
+            if (error) {
+                throw error
+            }
+            response.status(200).send(`Program updated`)
+        }
+    )
+}
+
 const updateProgramDuration = (request, response) => {
     const { programId, duration } = request.body
 
@@ -1321,6 +1336,33 @@ const updateLesson = (request, response) => {
                 throw error
             }
             response.status(200).send(`Lesson updated`)
+        }
+    )
+}
+
+const updateNewLesson = (request, response) => {
+    const { lessonId, lessonTitle, lessonDesc, exerciseId, exerciseText, exerciseAnswer } = request.body;
+
+    // Обновляем таблицу oc_lessons
+    pool.query(
+        'UPDATE oc_lessons SET title = $2, tesis = $3 WHERE id = $1',
+        [lessonId, lessonTitle, lessonDesc],
+        (error, results) => {
+            if (error) {
+                throw error
+            }
+            
+            // Обновляем таблицу oc_exercises
+            pool.query(
+                'UPDATE oc_exercises SET text = $2, correct_answer = $3 WHERE id = $1',
+                [exerciseId, exerciseText, exerciseAnswer],
+                (error, results) => {
+                    if (error) {
+                        throw error
+                    }
+                    response.status(200).send(`Lesson updated`)
+                }
+            )
         }
     )
 }
@@ -2082,6 +2124,18 @@ const getProgramById = (request, response) => {
      })
  }
 
+const getLessonById = (request, response) => {
+    const { lessonId } = request.body
+    console.log('lessonId', lessonId)
+    pool.query('SELECT oc_lessons.*, oc_programs.title as "program_title" FROM oc_lessons INNER JOIN oc_programs ON oc_lessons.program_id = oc_programs.id WHERE oc_lessons.id = $1', [lessonId], (error, results) => {
+         if (error) {
+             throw error
+         }
+         console.log('lesson sent');
+         response.status(200).json(results.rows)
+     })
+}
+
 export default {
   createTicket,
   getCaptcha,
@@ -2134,8 +2188,10 @@ export default {
   getCurrentProgram,
   getStudentCourseInfo,
   updateProgramCourseAndTitle,
+  updateNewProgram,
   updateProgramDuration,
   updateLesson,
+  updateNewLesson,
   deleteLesson,
   updateExercise,
   deleteExercise,
@@ -2152,7 +2208,6 @@ export default {
   updateSchedule,
   createPersonalRoom,
   createDefaultRoom,
-  getLessonByRoomKey,
   getStudentByLessonKey,
   getTeacherByLessonKey,
   getCoursePrices,
@@ -2200,5 +2255,6 @@ export default {
   createStudentGroup,
   getProgramById,
   createCourseAndProgram,
-  createNewLessonAndExercises
+  createNewLessonAndExercises,
+  getLessonById
 };
