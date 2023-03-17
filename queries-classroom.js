@@ -636,8 +636,8 @@ const createLesson = (request, response) => {
 }
 
 const createAnswer = (request, response) => {
-    const { answerText, lessonId, exerciseId, studentId, status } = request.body
-    pool.query('INSERT INTO oc_answers (text, lesson_id, exercise_id, student_id, status) VALUES ($1, $2, $3, $4, $5)', [answerText, lessonId, exerciseId, studentId, status], (error, result) => {
+    const { answerText, lessonId, exerciseId, studentId, status, comment } = request.body
+    pool.query('INSERT INTO oc_answers (text, lesson_id, exercise_id, student_id, status, comment) VALUES ($1, $2, $3, $4, $5, $6)', [answerText, lessonId, exerciseId, studentId, status, comment], (error, result) => {
         if (error) {
             throw error
         }
@@ -1527,7 +1527,7 @@ const getLessonInfo = (request, response) => {
           throw error
         }
         if (results.rows.length) {
-            pool.query('SELECT DISTINCT oc_lessons.id, oc_lessons.*, (SELECT COUNT(id) FROM oc_exercises WHERE oc_lessons.id=oc_exercises.lesson_id) AS all_exer,  (SELECT COUNT(id) FROM oc_answers WHERE oc_lessons.id=oc_answers.lesson_id AND oc_answers.student_id=$3) AS done_exer, FLOOR(COALESCE(NULLIF((SELECT COUNT(id) FROM oc_answers WHERE oc_lessons.id=oc_answers.lesson_id AND oc_answers.student_id=$3 AND oc_answers.status=$4), 0) * 100, 0) / NULLIF((SELECT COUNT(id) FROM oc_exercises WHERE oc_lessons.id=oc_exercises.lesson_id), 0)) AS score, oc_student_course_middleware.student_id, oc_student_course_middleware.paid, oc_schedule.start_time as "personal_time", oc_schedule.status, oc_lessons.translation_link as default_lesson_link, oc_schedule.translation_link as "personal_lesson_link" FROM public.oc_lessons INNER JOIN oc_student_course_middleware on oc_lessons.program_id = oc_student_course_middleware.program_id INNER JOIN oc_schedule on oc_lessons.id = oc_schedule.lesson_id INNER JOIN oc_courses ON oc_courses.id=oc_lessons.course_id WHERE oc_courses.url=$1 AND oc_lessons.program_id=$2 AND oc_student_course_middleware.program_id = $2 AND oc_student_course_middleware.student_id = $3 AND oc_student_course_middleware.student_id = oc_schedule.student_id ORDER BY oc_lessons.lesson_order ASC', [
+            pool.query('SELECT DISTINCT oc_lessons.id, oc_lessons.*, oc_answers.teacher_mark, (SELECT COUNT(id) FROM oc_exercises WHERE oc_lessons.id=oc_exercises.lesson_id) AS all_exer,  (SELECT COUNT(id) FROM oc_answers WHERE oc_lessons.id=oc_answers.lesson_id AND oc_answers.student_id=$3) AS done_exer, FLOOR(COALESCE(NULLIF((SELECT COUNT(id) FROM oc_answers WHERE oc_lessons.id=oc_answers.lesson_id AND oc_answers.student_id=$3 AND oc_answers.status=$4), 0) * 100, 0) / NULLIF((SELECT COUNT(id) FROM oc_exercises WHERE oc_lessons.id=oc_exercises.lesson_id), 0)) AS score, oc_student_course_middleware.student_id, oc_student_course_middleware.paid, oc_schedule.start_time as "personal_time", oc_schedule.status, oc_lessons.translation_link as default_lesson_link, oc_schedule.translation_link as "personal_lesson_link" FROM public.oc_lessons INNER JOIN oc_student_course_middleware on oc_lessons.program_id = oc_student_course_middleware.program_id INNER JOIN oc_schedule on oc_lessons.id = oc_schedule.lesson_id INNER JOIN oc_courses ON oc_courses.id=oc_lessons.course_id INNER JOIN oc_answers ON oc_answers.lesson_id=oc_lessons.id WHERE oc_courses.url=$1 AND oc_lessons.program_id=$2 AND oc_student_course_middleware.program_id = $2 AND oc_student_course_middleware.student_id = $3 AND oc_student_course_middleware.student_id = oc_schedule.student_id ORDER BY oc_lessons.lesson_order ASC', [
                 course_url,
                 program_id,
                 student_id,
