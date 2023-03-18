@@ -23,10 +23,7 @@ const pool = new Pool(productionPoolOptions);
 const stuffEmails = [
   'azat.aliaskar@gmail.com',
   'alexdrumm13@gmail.com',
-  'oilanabaz7@gmail.com',
-  'zznnznzn3@gmail.com',
-  'Anara2607@mail.ru',
-  'stadjun.kon@gmail.com'
+  'Anara2607@mail.ru'
 ];
 
 const sendEmail = async (emailsTo, title, message) => {
@@ -1652,6 +1649,65 @@ const getLessonInfo = (request, response) => {
       });
   };
 
+const getLessonInfo_v2 = (request, response) => {
+    const { course_url, program_id, student_id } = request.query;
+    const answer_status = 'correct';
+
+    pool.query(
+      'SELECT oc_courses.id FROM oc_courses WHERE oc_courses.url=$1',
+      [course_url],
+      (error, results) => {
+        if (error) {
+          throw error;
+        }
+        if (results.rows.length) {
+          pool.query(
+            `
+            SELECT DISTINCT oc_lessons.id,
+              oc_lessons.*,
+              oc_answers.teacher_mark,
+              (SELECT COUNT(id) FROM oc_exercises WHERE oc_lessons.id=oc_exercises.lesson_id) AS all_exer,
+              (SELECT COUNT(id) FROM oc_answers WHERE oc_lessons.id=oc_answers.lesson_id AND oc_answers.student_id=$3) AS done_exer,
+              FLOOR(
+                COALESCE(
+                  NULLIF(
+                    (SELECT COUNT(id) FROM oc_answers WHERE oc_lessons.id=oc_answers.lesson_id AND oc_answers.student_id=$3 AND oc_answers.status=$4), 0
+                  ) * 100, 0
+                ) / NULLIF((SELECT COUNT(id) FROM oc_exercises WHERE oc_lessons.id=oc_exercises.lesson_id), 0)
+              ) AS score,
+              oc_student_course_middleware.student_id,
+              oc_student_course_middleware.paid,
+              oc_schedule.start_time as "personal_time",
+              oc_schedule.status,
+              oc_lessons.translation_link as default_lesson_link,
+              oc_schedule.translation_link as "personal_lesson_link"
+            FROM public.oc_lessons
+            INNER JOIN oc_student_course_middleware on oc_lessons.program_id = oc_student_course_middleware.program_id
+            INNER JOIN oc_schedule on oc_lessons.id = oc_schedule.lesson_id
+            INNER JOIN oc_courses ON oc_courses.id=oc_lessons.course_id
+            LEFT JOIN oc_answers ON oc_answers.lesson_id=oc_lessons.id AND oc_answers.student_id=$3
+            WHERE oc_courses.url=$1
+              AND oc_lessons.program_id=$2
+              AND oc_student_course_middleware.program_id = $2
+              AND oc_student_course_middleware.student_id = $3
+              AND oc_student_course_middleware.student_id = oc_schedule.student_id
+            ORDER BY oc_lessons.lesson_order ASC
+            `,
+            [course_url, program_id, student_id, answer_status],
+            (error, results) => {
+              if (error) {
+                throw error;
+              }
+              response.status(200).json(results.rows);
+            }
+          );
+        } else {
+          console.log('error');
+        }
+      }
+    );
+  };
+
 const getStudentScores = (request, response) => {
   const {student_nick} = request.query;
   pool.query('SELECT * FROM oc_answers INNER JOIN oc_students ON  oc_answers.student_id = oc_students.id WHERE oc_answers.student_id = oc_students.id AND oc_students.nickname=$1', [
@@ -2304,6 +2360,8 @@ export default {
   updateExercise,
   deleteExercise,
   getLessonInfo,
+  getLessonInfo_v2,
+  getLessonInfo_new,
   getStudentScores,
   getSertificateByTeacherId,
   getStudentLessonsByProgramId,
