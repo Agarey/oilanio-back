@@ -594,19 +594,26 @@ const createStudentAndProgram = (request, response) => {
 
 const createGroup = (request, response) => {
     const { teacherId, title, programId } = request.body;
-    
-    pool.query('INSERT INTO oc_groups (title, teacher_id, program_id) VALUES ($2, $1, $3)', [teacherId, title, programId], (error, result) => {
+    pool.query("SELECT id FROM oc_groups WHERE title=$2 and teacher_id=$1", [teacherId, title], (error, result) => {
         if (error) {
             throw error;
         }
-        pool.query("SELECT max(id) as id from oc_groups", (error, result) => {
-            if (error) {
-                throw error;
-            }
-            response.status(200).json(result.rows[0])
-        });
+        if (result.rows.length === 0) {
+            pool.query('INSERT INTO oc_groups (title, teacher_id, program_id) VALUES ($2, $1, $3)', [teacherId, title, programId], (error, result) => {
+                if (error) {
+                    throw error;
+                }
+                pool.query("SELECT max(id) as id from oc_groups", (error, result) => {
+                    if (error) {
+                        throw error;
+                    }
+                    response.status(200).json(result.rows[0])
+                });
+            });
+        } else {
+            response.status(400).json("Такое название уже имеется.");
+        }
     });
-  
 };
 
 const createStudentGroup = (request, response) => {
