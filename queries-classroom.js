@@ -1545,9 +1545,9 @@ const updateAnswerStatus = (request, response) => {
 }
 
 const updateStudentAnswer = (request, response) => {
-    const { answerText, answerId, status } = request.body
+    const { answerText, answerId, status, comment } = request.body
 
-    pool.query('UPDATE oc_answers SET text=$1, status=$3 WHERE id = $2', [answerText, answerId, status], (error, results) => {
+    pool.query('UPDATE oc_answers SET text=$1, status=$3, student_comment=$4 WHERE id = $2', [answerText, answerId, status, comment], (error, results) => {
         if (error) {
             throw error
         }
