@@ -634,7 +634,8 @@ const createLesson = (request, response) => {
 
 const createAnswer = (request, response) => {
     const { answerText, lessonId, exerciseId, studentId, status, comment } = request.body
-    pool.query('INSERT INTO oc_answers (text, lesson_id, exercise_id, student_id, status, comment) VALUES ($1, $2, $3, $4, $5, $6)', [answerText, lessonId, exerciseId, studentId, status, comment], (error, result) => {
+    console.log(request.body);
+    pool.query('INSERT INTO oc_answers (text, lesson_id, exercise_id, student_id, status, student_comment) VALUES ($1, $2, $3, $4, $5, $6)', [answerText, lessonId, exerciseId, studentId, status, comment], (error, result) => {
         if (error) {
             throw error
         }
@@ -1172,7 +1173,7 @@ const getStudentsGroupsByTeacherId = (request, response) => {
   const getAssignmentsByTeacherId = (request, response) => {
     const { id } = request.body;
 
-    pool.query('SELECT DISTINCT oc_answers.id as "answer_id", oc_exercises.id as "exercise_id", oc_exercises.exer_order as "exercise_order", oc_lessons.id as "lesson_id", oc_students.id as "student_id", oc_students.name as "student_name", oc_exercises.text as "exercise_text", oc_answers.text as "answer_text", oc_answers.student_comment as "student_comment", oc_answers.teacher_mark as "teacher_mark" ' +
+    pool.query('SELECT DISTINCT oc_answers.id as "answer_id", oc_exercises.id as "exercise_id", oc_exercises.exer_order as "exercise_order", oc_lessons.id as "lesson_id", oc_students.id as "student_id", oc_students.name as "student_name", oc_exercises.text as "exercise_text", oc_answers.text as "answer_text", oc_answers.student_comment as "student_comment", oc_answers.comment as "teacher_comment", oc_answers.teacher_mark as "teacher_mark" ' +
       'FROM oc_students ' +
       'INNER JOIN oc_answers ON oc_students.id = oc_answers.student_id ' +
       'INNER JOIN oc_lessons ON oc_answers.lesson_id = oc_lessons.id ' +
