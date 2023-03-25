@@ -406,7 +406,7 @@ const createCourse = (request, response) => {
 }
 
 const createCourseAndProgram = (request, response) => {
-  const { title: courseTitle, courseUrl, teacherId, categoryId } = request.body.course
+  const { title: courseTitle, description, courseUrl, teacherId, categoryId } = request.body.course
   const { programTitle, programType } = request.body.program
 
   console.log(request.body.course)
@@ -421,7 +421,7 @@ const createCourseAndProgram = (request, response) => {
         response.status(400).send('Course with this URL already exists')
     } else {
         // Если запись не существует, осуществляем вставку новой записи
-        pool.query('INSERT INTO oc_courses (title, url, teacher_id, category_id) VALUES ($1, $2, $3, $4) RETURNING id', [courseTitle, courseUrl, teacherId, categoryId], (error, result) => {
+        pool.query('INSERT INTO oc_courses (title, description, url, teacher_id, category_id) VALUES ($1, $2, $3, $4, $5) RETURNING id', [courseTitle, description, courseUrl, teacherId, categoryId], (error, result) => {
             if (error) {
                 throw error
             }
@@ -550,46 +550,37 @@ const createStudent = (request, response) => {
     })
 }
 
-const createStudentAndProgram = (request, response) => {
-    const { studentSurname, studentName, studentPatronymic, nickname, programId } = request.body;
+const createStudentAndProgram = async (request, response) => {
+  const { studentSurname, studentName, studentPatronymic, nickname, programId } = request.body;
 
-    Promise.all([
-        pool.query('SELECT nickname FROM oc_students WHERE nickname = $1', [nickname]),
-        pool.query('SELECT url AS nickname FROM oc_teachers WHERE url = $1', [nickname]),
-        pool.query('SELECT nick AS nickname FROM oc_users WHERE nick = $1', [nickname])
-    ]).then(results => {
-        const found = results.some(result => result.rows.length > 0);
-        if (found) {
-            response.status(400).send("Данный логин уже зарегистрирован, необходимо попробовать другой");
-        } else {
-            pool.query('INSERT INTO oc_students (surname, name, patronymic, nickname) VALUES ($1, $2, $3, $4)', [studentSurname, studentName, studentPatronymic, nickname], (error, result) => {
-                if (error) {
-                    throw error;
-                }
-                pool.query("SELECT max(id) as id from oc_students", (error, result) => {
-                    if (error) {
-                        throw error;
-                    }
-                    const studentId = result.rows[0].id;
-                    pool.query("SELECT course_id as id from oc_programs WHERE id = $1", [programId], (error, result) => {
-                        if (error) {
-                            throw error;
-                        }
-                        const courseId = result.rows[0].id;
-                        pool.query('INSERT INTO oc_student_course_middleware (student_id, course_id, program_id) VALUES ($1, $2, $3)', [studentId, courseId, programId], (error, result) => {
-                            if (error) {
-                                throw error;
-                            }
-                            response.status(201).send();
-                        });
-                    });
-                });
-            });
+  try {
+    const { rows } = await pool.query('SELECT nickname FROM oc_students WHERE nickname = $1', [nickname]);
+    if (rows.length > 0) {
+        return response.status(400).send("Данный логин уже зарегистрирован, необходимо попробовать другой");
+    }
+    const studentResult = await pool.query('INSERT INTO oc_students (surname, name, patronymic, nickname) VALUES ($1, $2, $3, $4) RETURNING id', [studentSurname, studentName, studentPatronymic, nickname]);
+    const studentId = studentResult.rows[0].id;
+    const programResult = await pool.query('SELECT course_id, start_time, id FROM oc_lessons WHERE program_id = $1', [programId]);
+
+    const lessonsToSchedule = programResult.rows.filter(row => row.course_id);
+
+    const scheduleQueries = lessonsToSchedule.map(async row => {
+        const existing = await pool.query('SELECT id FROM oc_schedule WHERE student_id = $1 AND lesson_id = $2', [studentId, row.id]);
+        if (existing.rows.length === 0) {
+            const startTime = row.start_time || null;
+            await pool.query('INSERT INTO oc_schedule (student_id, course_id, lesson_id, start_time) VALUES ($1, $2, $3, $4)', [studentId, row.course_id, row.id, startTime]);
         }
-    }).catch(error => {
-        console.error(error);
-        response.status(500).send();
     });
+
+    await Promise.all(scheduleQueries);
+
+    await pool.query('INSERT INTO oc_student_course_middleware (student_id, course_id, program_id) VALUES ($1, (SELECT course_id FROM oc_programs WHERE id = $2), $2)', [studentId, programId]);
+    
+    return response.status(201).send();
+  } catch (error) {
+      console.error(error);
+      return response.status(500).send();
+  }
 };
 
 const createGroup = (request, response) => {
