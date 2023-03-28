@@ -1774,6 +1774,11 @@ const createSchedule = (request, response) => {
 const updateSchedule = (request, response) => {
     const { dateAndTimeMerger, lesson_id, course_id, student_id } = request.body
 
+    if (!dateAndTimeMerger) {
+        response.status(400).send('dateAndTimeMerger is required')
+        return
+    }
+
     pool.query('UPDATE oc_schedule SET start_time = $1 WHERE lesson_id = $2 and course_id = $3 and student_id = $4', [dateAndTimeMerger.trim(), lesson_id, course_id, student_id], (error, results) => {
         if (error) {
             throw error
