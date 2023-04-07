@@ -644,11 +644,14 @@ const createAnswer = (request, response) => {
 const createExercise = (request, response) => {
     const { exerciseText, exerciseLessonId, correctlyAnswer, status } = request.body
 
-    pool.query('INSERT INTO oc_exercises (text, lesson_id, correct_answer, status) VALUES ($1, $2, $3, $4)', [exerciseText, exerciseLessonId, correctlyAnswer, status], (error, result) => {
+    pool.query('INSERT INTO oc_exercises (text, lesson_id, correct_answer, status) VALUES ($1, $2, $3, $4) RETURNING id', [exerciseText, exerciseLessonId, correctlyAnswer, status], (error, result) => {
         if (error) {
             throw error
         }
-        response.status(201).send(`Exercise added with ID: ${result.insertId}`)
+        const insertedId = result.rows[0].id
+        // console.log("createExercise result", result, "response", response);
+        response.status(200).json(insertedId);
+        // response.status(201).send(`Exercise added with ID: ${insertedId}`)
     })
 }
 
