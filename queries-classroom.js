@@ -1724,7 +1724,7 @@ const getStudentScores = (request, response) => {
 
 const getLessonExercises = (request, response) => {
   const {lesson_id, student_id} = request.query;
-  pool.query('SELECT DISTINCT oc_exercises.*, oc_answers.student_id, oc_answers.id as answer_id, oc_answers.text as answer_text, oc_answers.status as answer_status FROM oc_exercises LEFT JOIN oc_answers ON oc_exercises.id=oc_answers.exercise_id AND oc_answers.student_id=$2 WHERE oc_exercises.lesson_id=$1 ORDER BY oc_exercises.exer_order ASC', [
+  pool.query('SELECT DISTINCT oc_exercises.*, oc_answers.student_id, oc_answers.teacher_mark as mark, oc_answers.id as answer_id, oc_answers.text as answer_text, oc_answers.status as answer_status FROM oc_exercises LEFT JOIN oc_answers ON oc_exercises.id=oc_answers.exercise_id AND oc_answers.student_id=$2 WHERE oc_exercises.lesson_id=$1 ORDER BY oc_exercises.exer_order ASC', [
     lesson_id,
     student_id
   ], (error, results) => {
