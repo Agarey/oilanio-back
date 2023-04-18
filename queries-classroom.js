@@ -2307,6 +2307,123 @@ const getLessonById = (request, response) => {
      })
 }
 
+const getStudentsByGroupId = (request, response) => {
+    const id = parseInt(request.params.id);
+    console.log(id, "ididid");
+  
+    pool.query('SELECT * FROM oc_student_group_middleware where group_id=$1', [id], (error, results) => {
+        if (error) {
+            response.status(500).json('error');
+            console.error(error);
+        }else {
+            response.status(200).json(results.rows);
+        }
+    })
+  }
+
+  const updateGroup = (request, response) => {
+    const { id, title, programId } = request.body;
+  
+    let query = 'UPDATE oc_groups SET';
+    const values = [id];
+  
+    if ('title' in request.body) {
+      query += ' title = $2';
+      values.push(title);
+    }
+  
+    if ('programId' in request.body) {
+      if ('title' in request.body) {
+        query += ',';
+      }
+      query += ' program_id = $3';
+      values.push(programId);
+    }
+  
+    query += ' WHERE id = $1';
+  
+    pool.query(query, values, (error, results) => {
+      if (error) {
+        throw error;
+      }
+      response.status(200).send(`Group updated with ID: ${id}`);
+    });
+};
+
+  const updateGroupMiddleware = (request, response) => {
+    const { groupId, programId, courseId } = request.body;
+  
+    pool.query(
+      'UPDATE oc_student_group_middleware SET program_id = $2, course_id = $3 WHERE group_id = $1',
+      [groupId, programId, courseId],
+      (error, results) => {
+        if (error) {
+          throw error;
+        }
+        response.status(200).send(`Group middleware modified`);
+      }
+    );
+  };
+
+  const createGroupMiddleware = (request, response) => {
+    const { groupId, programId, studentId, courseId } = request.body;
+  
+    const newGroupMiddleware = {
+      group_id: groupId,
+      program_id: programId,
+      student_id: studentId,
+      course_id: courseId
+    };
+  
+    pool.query(
+      'INSERT INTO oc_student_group_middleware (group_id, program_id, student_id, course_id) VALUES ($1, $2, $3, $4)',
+      [newGroupMiddleware.group_id, newGroupMiddleware.program_id, newGroupMiddleware.student_id, newGroupMiddleware.course_id],
+      (error, results) => {
+        if (error) {
+          throw error;
+        }
+        response.status(201).send(`Group middleware added`);
+      }
+    );
+  };
+
+  const deleteGroupMiddleware = (request, response) => {
+    const { groupId, programId, studentId, courseId } = request.body;
+  
+    pool.query(
+      'DELETE FROM oc_student_group_middleware WHERE group_id = $1 AND program_id = $2 AND student_id = $3 AND course_id = $4',
+      [groupId, programId, studentId, courseId],
+      (error, results) => {
+        if (error) {
+          throw error;
+        }
+        response.status(200).send(`Group middleware deleted`);
+      }
+    );
+  };
+
+//   const createGroupMiddleware = (request, response) => {
+//     const { groupId, programId, studentId, courseId } = request.body;
+  
+//     const newGroupMiddleware = {
+//       group_id: groupId,
+//       program_id: programId,
+//       student_id: studentId,
+//       course_id: courseId
+//     };
+  
+//     pool.query(
+//       'INSERT INTO oc_student_group_middleware (group_id, program_id, student_id, course_id) VALUES ($1, $2, $3, $4)',
+//       [newGroupMiddleware.group_id, newGroupMiddleware.program_id, newGroupMiddleware.student_id, newGroupMiddleware.course_id],
+//       (error, results) => {
+//         if (error) {
+//           throw error;
+//         }
+//         response.status(201).send(`Group middleware added`);
+//       }
+//     );
+//   };
+
 export default {
   createTicket,
   getCaptcha,
@@ -2431,5 +2548,10 @@ export default {
   createNewLessonAndExercises,
   getLessonById,
   getAnswersStatistics,
-  getAssignmentsByTeacherId
+  getAssignmentsByTeacherId,
+  getStudentsByGroupId,
+  updateGroup,
+  updateGroupMiddleware,
+  createGroupMiddleware,
+  deleteGroupMiddleware
 };

@@ -353,6 +353,11 @@ app.put('/updateUserLogin', db_classroom.updateUserLogin)
 app.put('/updateUserPassword', db_classroom.updateUserPassword)
 app.post('/createCourseAndProgram', db_classroom.createCourseAndProgram)
 app.post('/createNewLessonAndExercises', db_classroom.createNewLessonAndExercises)
+app.post('/getStudentsByGroupId/:id', db_classroom.getStudentsByGroupId)
+app.put('/updateGroup', db_classroom.updateGroup)
+app.put('/updateGroupMiddleware', db_classroom.updateGroupMiddleware)
+app.post('/createGroupMiddleware', db_classroom.createGroupMiddleware)
+app.delete('/deleteGroupMiddleware', db_classroom.deleteGroupMiddleware)
 
 let devPublicRoute = "dev\\goco-backend\\public";
 let productionPublicRoute = "/root/goco-backend/public";
