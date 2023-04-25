@@ -961,6 +961,20 @@ const getProgramsByStudentId = (request, response) => {
   })
 }
 
+const getProgramsByStudentIdGroup = (request, response) => {
+    const id = request.params.id;
+    pool.query('SELECT oc_programs.id, oc_programs.lesson_duration, oc_programs.title, oc_programs.teacher_id, oc_programs.course_id, oc_courses.url as "course_url", oc_courses.title as "course_title", oc_courses.start_date, oc_courses.end_date, oc_student_group_middleware.*, (select count(id) from oc_lessons where oc_programs.id = oc_lessons.program_id) as "lessons_count" FROM oc_programs INNER JOIN oc_courses on oc_programs.course_id = oc_courses.id INNER JOIN oc_student_group_middleware on oc_programs.id = oc_student_group_middleware.program_id where oc_student_group_middleware.student_id=$1 order by oc_programs.id asc', [id], (error, results) => {
+        if (error) {
+            response.status(500).json('error');
+            console.error(error);
+            
+        }else {
+            response.status(200).json(results.rows);
+            
+        }
+    })
+  }
+
 const getProgramsByCourseId = (request, response) => {
   const id = request.params.id;
   pool.query('SELECT * FROM oc_programs WHERE course_id=$1', [id], (error, results) => {
@@ -1069,6 +1083,21 @@ const getStudentsByTeacherId = (request, response) => {
       }
   })
 }
+
+const getStudentsByTeacherIdGroup = (request, response) => {
+    const {id, sort} = request.body;
+  
+    pool.query('SELECT oc_student_group_middleware.student_id, oc_student_group_middleware.course_id, oc_student_group_middleware.program_id, oc_courses.title as "course_title", oc_courses.url as "course_url", oc_students.surname, oc_students.name, oc_students.patronymic, oc_students.nickname, oc_students.img, (select count(id) from oc_lessons where oc_student_group_middleware.program_id = oc_lessons.program_id) as "lessons_count", oc_programs.title as "program_title" from oc_student_group_middleware INNER JOIN oc_courses on oc_student_group_middleware.course_id = oc_courses.id INNER JOIN oc_programs on oc_student_group_middleware.program_id = oc_programs.id INNER JOIN oc_students on oc_student_group_middleware.student_id = oc_students.id where oc_courses.teacher_id=$1 ORDER BY $2', [id, sort], (error, results) => {
+        if (error) {
+            response.status(500).json('error');
+            console.error(error);
+        }else {
+            response.status(200).json(results.rows);
+            console.log("students", results.rows);
+            
+        }
+    })
+  }
 
 const getStudentsGroupsByTeacherId = (request, response) => {
     const {id, sort} = request.body;
@@ -1268,29 +1297,34 @@ const updateStudentProgramStatus = (request, response) => {
 const addStudentProgram = (request, response) => {
     const { nickname, programId } = request.body
 
-    pool.query("SELECT * from oc_students WHERE nickname = $1", [nickname], (error, result) => {
-        if (error) {
-            throw error;
+    pool.query(
+        `INSERT INTO oc_student_course_middleware (student_id, course_id, program_id)
+        SELECT oc_students.id, oc_programs.course_id, $2
+        FROM oc_students
+        JOIN oc_programs ON oc_programs.id = $2
+        WHERE oc_students.nickname = $1
+            AND NOT EXISTS (
+                SELECT 1
+                FROM oc_student_course_middleware
+                WHERE oc_student_course_middleware.course_id = oc_programs.course_id
+                    AND oc_student_course_middleware.student_id = oc_students.id
+                    AND oc_student_course_middleware.program_id = $2
+            )`,
+        [nickname, programId],
+        (error, result) => {
+            if (error) {
+                throw error;
+            }
+            if (result.rowCount > 0) {
+                response.status(201).send(`Program added with ID: ${result.insertId}`);
+            } else {
+                response.status(200).send(`Program already exists`);
+            }
         }
-        if (result.rows.length > 0) {
-            const studentId = result.rows[0].id;
-            pool.query("SELECT course_id as id from oc_programs WHERE id = $1", [programId], (error, result2) => {
-                if (error) {
-                    throw error;
-                }
-                const courseId = result2.rows[0].id;
-                pool.query('INSERT INTO oc_student_course_middleware (student_id, course_id, program_id) VALUES ($1, $2, $3)', [studentId, courseId, programId], (error, result) => {
-                    if (error) {
-                        throw error;
-                    }
-                    response.status(201).send(`Program added with ID: ${result.insertId}`)
-                });
-            });
-        } else {
-            response.status(400).send("Логин не найден");
-        }
-    })
+    );
 }
+
+
 
 const updateStudentData = (request, response) => {
     const { name, surname, patronymic, nickname, id } = request.body
@@ -2553,5 +2587,7 @@ export default {
   updateGroup,
   updateGroupMiddleware,
   createGroupMiddleware,
-  deleteGroupMiddleware
+  deleteGroupMiddleware,
+  getProgramsByStudentIdGroup,
+  getStudentsByTeacherIdGroup
 };
