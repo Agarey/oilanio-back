@@ -2271,21 +2271,43 @@ const updateStudentDataFromProfile = (request, response) => {
     )
 }
 
-const getAllCoursesAndProgramsOfStudent = (request, response) => {
-    const {studentId} = request.query;
-    pool.query('SELECT * FROM oc_student_course_middleware where student_id=$1', [
-        studentId
-    ], (error, results) => {
-      if (error) {
-            response.status(500).json('error');
-            console.error(error);
+// const getAllCoursesAndProgramsOfStudent = (request, response) => {
+//     const {studentId} = request.query;
+//     pool.query('SELECT * FROM oc_student_course_middleware where student_id=$1', [
+//         studentId
+//     ], (error, results) => {
+//       if (error) {
+//             response.status(500).json('error');
+//             console.error(error);
             
-        }else {
-            response.status(200).json(results.rows);
+//         }else {
+//             response.status(200).json(results.rows);
             
+//         }
+//     })
+//   }
+
+  const getAllCoursesAndProgramsOfStudent = (request, response) => {
+    const { studentId } = request.query;
+    pool.query(
+      `SELECT scm.*, c.url, c.title as "courseTitle", d.title as "programTitle"
+       FROM oc_student_course_middleware scm
+       INNER JOIN oc_courses c
+       ON scm.course_id = c.id
+       INNER JOIN oc_programs d
+       ON scm.program_id = d.id
+       WHERE scm.student_id = $1`,
+      [studentId],
+      (error, results) => {
+        if (error) {
+          response.status(500).json('error');
+          console.error(error);
+        } else {
+          response.status(200).json(results.rows);
         }
-    })
-  }
+      }
+    );
+  };
 
 const updateUserLogin = (request, response) => {
     const { nick, id, roleId } = request.body
