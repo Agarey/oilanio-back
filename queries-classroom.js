@@ -1070,19 +1070,57 @@ const createEmptyProgram = (request, response) => {
 }
 
 const getStudentsByTeacherId = (request, response) => {
-  const {id, sort} = request.body;
-
-  pool.query('SELECT oc_student_course_middleware.student_id, oc_student_course_middleware.course_id, oc_student_course_middleware.program_id, oc_courses.title as "course_title", oc_courses.url as "course_url", oc_students.surname, oc_students.name, oc_students.patronymic, oc_students.nickname, oc_students.img, (select count(id) from oc_lessons where oc_student_course_middleware.program_id = oc_lessons.program_id) as "lessons_count", oc_programs.title as "program_title" from oc_student_course_middleware INNER JOIN oc_courses on oc_student_course_middleware.course_id = oc_courses.id INNER JOIN oc_programs on oc_student_course_middleware.program_id = oc_programs.id INNER JOIN oc_students on oc_student_course_middleware.student_id = oc_students.id where oc_courses.teacher_id=$1 ORDER BY $2', [id, sort], (error, results) => {
-      if (error) {
+    const { id, sort } = request.body;
+  
+    pool.query(
+      `
+      SELECT
+        oc_student_course_middleware.student_id,
+        oc_student_course_middleware.course_id,
+        oc_student_course_middleware.program_id,
+        oc_courses.title AS "course_title",
+        oc_courses.url AS "course_url",
+        oc_students.surname,
+        oc_students.name,
+        oc_students.patronymic,
+        oc_students.nickname,
+        oc_students.img,
+        (SELECT COUNT(id) FROM oc_lessons WHERE oc_student_course_middleware.program_id = oc_lessons.program_id) AS "lessons_count",
+        oc_programs.title AS "program_title",
+        oc_student_group_middleware.group_id AS "groupId"
+      FROM
+        oc_student_course_middleware
+        INNER JOIN oc_courses ON oc_student_course_middleware.course_id = oc_courses.id
+        INNER JOIN oc_programs ON oc_student_course_middleware.program_id = oc_programs.id
+        INNER JOIN oc_students ON oc_student_course_middleware.student_id = oc_students.id
+        LEFT JOIN oc_student_group_middleware ON
+          oc_student_group_middleware.course_id = oc_student_course_middleware.course_id AND
+          oc_student_group_middleware.program_id = oc_student_course_middleware.program_id AND
+          oc_student_group_middleware.student_id = oc_student_course_middleware.student_id
+      WHERE
+        oc_courses.teacher_id = $1
+      ORDER BY
+        $2
+      `,
+      [id, sort],
+      (error, results) => {
+        if (error) {
           response.status(500).json('error');
           console.error(error);
-      }else {
+        } else {
+          // Если groupId равен null, присваиваем ему значение undefined
+          results.rows.forEach((row) => {
+            if (row.groupId === null) {
+              row.groupId = undefined;
+            }
+          });
+  
           response.status(200).json(results.rows);
-          console.log("students", results.rows);
-          
+          console.log('students', results.rows);
+        }
       }
-  })
-}
+    );
+  };
 
 const getStudentsByTeacherIdGroup = (request, response) => {
     const {id, sort} = request.body;
