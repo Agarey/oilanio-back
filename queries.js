@@ -7,41 +7,17 @@ import {v4 as uuidv4} from 'uuid';
 import {Telegraf} from 'telegraf'
 import axios from 'axios';
 import { request, response } from 'express';
+import {productionPoolOptions, sendEmail, TELEGRAM_NGROK_HOST, devPoolOptions} from './accesses.js';
 moment.locale('ru');
-
-
-const TELEGRAM_NGROK_HOST = "0b84-198-89-92-162.ngrok.io";
-
-const devPoolOptions = {
-    user: 'hyhdsfgcsfgtko',
-    host: 'ec2-54-229-68-88.eu-west-1.compute.amazonaws.com',
-    database: 'dfjq5clee4ahv4',
-    password: 'bf322de92e8333896e987ab29ee34ae0b57ffdd145ee11e91b825e6b6de530df',
-    port: 5432,
-    ssl: {
-        rejectUnauthorized: false
-    }
-};
-
-const productionPoolOptions = {
-    user: 'postgres',
-    host: '91.201.215.148',
-    database: 'oilan_db',
-    password: 'root',
-    port: 5432,
-    ssl: false
-};
 
 const Pool = pg.Pool
 const pool = new Pool(productionPoolOptions);
 
-let stuffEmails = [
-    'azat.aliaskar@gmail.com',
-    'alexdrumm13@gmail.com',
-    'oilanabaz7@gmail.com',
-    'zznnznzn3@gmail.com',
-    '2021anara@mail.ru'
-]
+const stuffEmails = [
+  'azat.aliaskar@gmail.com',
+  'alexdrumm13@gmail.com',
+  'Anara2607@mail.ru'
+];
 
 const setNumbersToCenters = () => {
     let centerIds = [
@@ -3440,36 +3416,6 @@ const createTechSupportTicket = async (request, response) => {
             nameForMindsales += ` от центра ${centerTitle}. Сообщение: ` + message;
             createDealInMindsales(nameForMindsales, phoneForMindsales);
         })
-    }
-}
-
-const sendEmail = async (emailsTo, title, message) => {
-    let transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 465, // can try 25 for better performance
-        secure: true,
-        pool: true,
-        auth: {
-            user: 'oilanedu@gmail.com',
-            pass: 'fvkfoycauxwqpmfz'
-        }
-    });
-
-    for(let i = 0; i < emailsTo.length; i++){
-        let mailOptions = {
-            from: 'oilanedu@gmail.com',
-            to: emailsTo[i],
-            subject: title,
-            text: message,
-        };
-
-        await transporter.sendMail(mailOptions, function(error, info){
-            if (error) {
-                console.log(error);
-            } else {
-                console.log('Email sent to: ' + emailsTo[i]);
-            }
-        });
     }
 }
 

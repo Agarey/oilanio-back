@@ -7,15 +7,7 @@ moment.locale('ru');
 import jwt from 'jsonwebtoken'
 import {secret} from "./config.js"
 import {v4 as uuidv4} from 'uuid';
-
-const productionPoolOptions = {
-  user: 'postgres',
-  host: '91.201.215.148',
-  database: 'oilan_db',
-  password: 'root',
-  port: 5432,
-  ssl: false
-}; 
+import {productionPoolOptions, sendEmail} from './accesses.js';
 
 const Pool = pg.Pool
 const pool = new Pool(productionPoolOptions);
@@ -25,36 +17,6 @@ const stuffEmails = [
   'alexdrumm13@gmail.com',
   'Anara2607@mail.ru'
 ];
-
-const sendEmail = async (emailsTo, title, message) => {
-  let transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
-    pool: true,
-    auth: {
-      user: 'oilanclassroom@gmail.com',
-      pass: 'hjtvdqedqbwlpktt'
-    }
-  });
-
-  for(let i = 0; i < emailsTo.length; i++){
-    let mailOptions = {
-      from: 'oilanedu@gmail.com',
-      to: emailsTo[i],
-      subject: title,
-      text: message,
-    };
-      
-    await transporter.sendMail(mailOptions, function(error, info){
-      if (error) {
-        console.log(error);
-      } else {
-        console.log('Email sent to: ' + emailsTo[i]);
-      }
-    });
-  }
-};
 
 const createTicketInMindsales = (clientName, clientPhone) => {
   let data = {
@@ -921,6 +883,22 @@ const getTeacherByUrl = (request, response) => {
 //   console.log("getTeacherByUrl");
 
   pool.query('SELECT * FROM oc_teachers where url=$1', [url], (error, results) => {
+      if (error) {
+          response.status(500).json('error');
+          console.error(error);
+          
+      }else {
+          response.status(200).json(results.rows);
+          
+      }
+  })
+}
+
+const getGuideById = (request, response) => {
+  const id = request.params.id;
+//   console.log("getTeacherByUrl");
+
+  pool.query('SELECT * FROM oc_guides where id=$1', [id], (error, results) => {
       if (error) {
           response.status(500).json('error');
           console.error(error);
@@ -2554,6 +2532,7 @@ export default {
   getCourseStages,
   getTeacherByCourse,
   getTeacherByUrl,
+  getGuideById,
   getLessonByRoomKey,
   getStudentByLessonKey,
   getTeacherByLessonKey,
