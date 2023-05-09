@@ -33,8 +33,8 @@ const sendEmail = async (emailsTo, title, message) => {
     secure: true,
     pool: true,
     auth: {
-      user: 'oilanedu@gmail.com',
-      pass: 'jxkcvrkchclgewiu'
+      user: 'oilanclassroom@gmail.com',
+      pass: 'hjtvdqedqbwlpktt'
     }
   });
 
