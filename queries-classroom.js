@@ -1774,6 +1774,7 @@ const getStudentScores = (request, response) => {
 
 const getLessonExercises = (request, response) => {
   const {lesson_id, student_id} = request.query;
+  console.log("getLessonExercises", lesson_id, student_id);
   pool.query('SELECT DISTINCT oc_exercises.*, oc_answers.student_id, oc_answers.teacher_mark as mark, oc_answers.id as answer_id, oc_answers.text as answer_text, oc_answers.status as answer_status FROM oc_exercises LEFT JOIN oc_answers ON oc_exercises.id=oc_answers.exercise_id AND oc_answers.student_id=$2 WHERE oc_exercises.lesson_id=$1 ORDER BY oc_exercises.exer_order ASC', [
     lesson_id,
     student_id
@@ -1825,19 +1826,24 @@ const createSchedule = (request, response) => {
 }
 
 const updateSchedule = (request, response) => {
-    const { dateAndTimeMerger, lesson_id, course_id, student_id } = request.body
+    try {
+        const { dateAndTimeMerger, lesson_id, course_id, student_id } = request.body
 
-    if (!dateAndTimeMerger) {
-        response.status(400).send('dateAndTimeMerger is required')
-        return
-    }
-
-    pool.query('UPDATE oc_schedule SET start_time = $1 WHERE lesson_id = $2 and course_id = $3 and student_id = $4', [dateAndTimeMerger.trim(), lesson_id, course_id, student_id], (error, results) => {
-        if (error) {
-            throw error
+        if (!dateAndTimeMerger) {
+            response.status(400).send('dateAndTimeMerger is required')
+            return
         }
-        response.status(200).send(`Schedule updated`)
-    })
+    
+        pool.query('UPDATE oc_schedule SET start_time = $1 WHERE lesson_id = $2 and course_id = $3 and student_id = $4', [dateAndTimeMerger.trim(), lesson_id, course_id, student_id], (error, results) => {
+            if (error) {
+                throw error
+            }
+            response.status(200).send(`Schedule updated`)
+        })
+    } catch (error) {
+        console.error(error);
+        return response.status(500).send();
+    }
 }
 
 const getLessonByRoomKey = (request, response) => {
@@ -2496,6 +2502,56 @@ const getStudentsByGroupId = (request, response) => {
 //     );
 //   };
 
+const getStudentsInfoByRoom = (request, response) => {
+    const room = request.params.room
+    console.log("getStudentsInfoByRoom", request.params.room)
+  
+    pool.query(`
+    SELECT
+      oc_courses.url,
+      oc_lessons.program_id
+    FROM
+      oc_schedule
+      INNER JOIN oc_courses ON oc_courses.id = oc_schedule.course_id
+      INNER JOIN oc_lessons ON oc_lessons.id = oc_schedule.lesson_id
+    WHERE
+      oc_schedule.translation_link = $1
+    `, [room], (error, results) => {
+        if (error) {
+            response.status(500).json('error');
+            console.error(error);
+        }else {
+            response.status(200).json(results.rows);
+        }
+    })
+  }
+
+//   const getStudentsInfoByRoom = (request, response) => {
+//     const room = parseInt(request.params.room);
+//     console.log("getStudentsInfoByRoom", room);
+
+//     pool.query(
+//       `
+//       SELECT
+//         oc_courses.url,
+//         oc_lessons.program_id
+//       FROM
+//         oc_schedule
+//         INNER JOIN oc_courses ON oc_courses.id = oc_schedule.course_id
+//         INNER JOIN oc_lessons ON oc_lessons.id = oc_schedule.lesson_id
+//       WHERE
+//         oc_schedule.translation_link = $1
+//       `,
+//       [room],
+//       (error, results) => {
+//         if (error) {
+//           throw error;
+//         }
+//         console.log(results.rows);
+//       }
+//     );
+//   };
+
 export default {
   createTicket,
   getCaptcha,
@@ -2628,5 +2684,6 @@ export default {
   createGroupMiddleware,
   deleteGroupMiddleware,
   getProgramsByStudentIdGroup,
-  getStudentsByTeacherIdGroup
+  getStudentsByTeacherIdGroup,
+  getStudentsInfoByRoom
 };

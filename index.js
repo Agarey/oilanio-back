@@ -361,6 +361,7 @@ app.post('/createGroupMiddleware', db_classroom.createGroupMiddleware)
 app.delete('/deleteGroupMiddleware', db_classroom.deleteGroupMiddleware)
 app.post('/getProgramsByStudentIdGroup/:id', db_classroom.getProgramsByStudentIdGroup)
 app.post('/getStudentsByTeacherIdGroup', db_classroom.getStudentsByTeacherIdGroup)
+app.post('/getStudentsInfoByRoom/:room', db_classroom.getStudentsInfoByRoom)
 
 let devPublicRoute = "dev\\goco-backend\\public";
 let productionPublicRoute = "/root/goco-backend/public";
