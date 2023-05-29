@@ -1310,35 +1310,57 @@ const updateStudentProgramStatus = (request, response) => {
     )
 }
 
-const addStudentProgram = (request, response) => {
-    const { nickname, programId } = request.body
+const addStudentProgram = async (request, response) => {
+    const { nickname, programId } = request.body;
 
-    pool.query(
-        `INSERT INTO oc_student_course_middleware (student_id, course_id, program_id)
-        SELECT oc_students.id, oc_programs.course_id, $2
-        FROM oc_students
-        JOIN oc_programs ON oc_programs.id = $2
-        WHERE oc_students.nickname = $1
-            AND NOT EXISTS (
-                SELECT 1
-                FROM oc_student_course_middleware
-                WHERE oc_student_course_middleware.course_id = oc_programs.course_id
-                    AND oc_student_course_middleware.student_id = oc_students.id
-                    AND oc_student_course_middleware.program_id = $2
-            )`,
-        [nickname, programId],
-        (error, result) => {
-            if (error) {
-                throw error;
+    try {
+        const studentResult = await pool.query('SELECT id FROM oc_students WHERE nickname = $1', [nickname]);
+        const studentId = studentResult.rows[0].id;
+
+        const programResult = await pool.query('SELECT course_id, start_time, id FROM oc_lessons WHERE program_id = $1', [programId]);
+
+        const lessonsToSchedule = programResult.rows.filter(row => row.course_id);
+
+        const scheduleQueries = lessonsToSchedule.map(async row => {
+            const existing = await pool.query('SELECT id FROM oc_schedule WHERE student_id = $1 AND lesson_id = $2', [studentId, row.id]);
+            if (existing.rows.length === 0) {
+                const startTime = row.start_time || null;
+                await pool.query('INSERT INTO oc_schedule (student_id, course_id, lesson_id, start_time) VALUES ($1, $2, $3, $4)', [studentId, row.course_id, row.id, startTime]);
             }
-            if (result.rowCount > 0) {
-                response.status(201).send(`Program added with ID: ${result.insertId}`);
-            } else {
-                response.status(200).send(`Program already exists`);
+        });
+
+        await Promise.all(scheduleQueries);
+
+        pool.query(
+            `INSERT INTO oc_student_course_middleware (student_id, course_id, program_id)
+            SELECT oc_students.id, oc_programs.course_id, $2
+            FROM oc_students
+            JOIN oc_programs ON oc_programs.id = $2
+            WHERE oc_students.nickname = $1
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM oc_student_course_middleware
+                    WHERE oc_student_course_middleware.course_id = oc_programs.course_id
+                        AND oc_student_course_middleware.student_id = oc_students.id
+                        AND oc_student_course_middleware.program_id = $2
+                )`,
+            [nickname, programId],
+            (error, result) => {
+                if (error) {
+                    throw error;
+                }
+                if (result.rowCount > 0) {
+                    response.status(201).send(`Program added with ID: ${result.insertId}`);
+                } else {
+                    response.status(200).send(`Program already exists`);
+                }
             }
-        }
-    );
-}
+        );
+    } catch (error) {
+        response.status(500).send('Internal Server Error');
+    }
+};
+
 
 
 
