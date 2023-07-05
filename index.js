@@ -4,6 +4,7 @@ const app = express()
 import ACTIONS from './actions.js'
 import db from './queries.js'
 import db_classroom from './queries-classroom.js';
+import db_corporate from './queries-corporate.js';
 import cors from 'cors'
 import fs from "fs";
 import path from "path";
@@ -362,6 +363,31 @@ app.delete('/deleteGroupMiddleware', db_classroom.deleteGroupMiddleware)
 app.post('/getProgramsByStudentIdGroup/:id', db_classroom.getProgramsByStudentIdGroup)
 app.post('/getStudentsByTeacherIdGroup', db_classroom.getStudentsByTeacherIdGroup)
 app.post('/getStudentsInfoByRoom/:room', db_classroom.getStudentsInfoByRoom)
+
+
+app.post('/createLocation', db_corporate.createLocation)
+app.get('/getAllLocations', db_corporate.getAllLocations)
+app.delete('/deleteLocation', db_corporate.deleteLocation)
+app.post('/createDirector', db_corporate.createDirector)
+app.get('/getAllDirectors', db_corporate.getAllDirectors)
+app.delete('/deleteDirector', db_corporate.deleteDirector)
+app.post('/createEnterpriseStatus', db_corporate.createEnterpriseStatus)
+app.get('/getAllEnterpriseStatuses', db_corporate.getAllEnterpriseStatuses)
+app.delete('/deleteEnterpriseStatus', db_corporate.deleteEnterpriseStatus)
+app.post('/createLegalForm', db_corporate.createLegalForm)
+app.get('/getAllLegalForms', db_corporate.getAllLegalForms)
+app.delete('/deleteLegalForm', db_corporate.deleteLegalForm)
+app.post('/createOwnershipForm', db_corporate.createOwnershipForm)
+app.get('/getAllOwnershipForms', db_corporate.getAllOwnershipForms)
+app.delete('/deleteOwnershipForm', db_corporate.deleteOwnershipForm)
+app.post('/createActivityType', db_corporate.createActivityType)
+app.get('/getAllActivityTypes', db_corporate.getAllActivityTypes)
+app.delete('/deleteActivityType', db_corporate.deleteActivityType)
+app.post('/createCompany', db_corporate.createCompany)
+app.get('/getAllExistingCompanies', db_corporate.getAllExistingCompanies)
+app.delete('/deleteCompany', db_corporate.deleteCompany)
+app.post('/userLogin', db_corporate.loginUser)
+app.get('/user', db_corporate.authenticateToken, db_corporate.getUser);
 
 let devPublicRoute = "dev\\goco-backend\\public";
 let productionPublicRoute = "/root/goco-backend/public";
