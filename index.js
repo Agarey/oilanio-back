@@ -210,7 +210,6 @@ app.post('/editTutorSertificateTitle', db.editTutorSertificateTitle)
 app.post('/editTeacherInfo', db.editTeacherInfo)
 app.post('/createAccountTest', db.createAccountTest)
 app.get('/getAccountsTest', db.getAccountsTest)
-
 app.get('/getTelegramFeedbacksCenters', db.getTelegramFeedbacksCenters)
 app.get('/getTelegramFeedbacksTutors', db.getTelegramFeedbacksTutors)
 app.get('/getRegions', db.getRegions)
@@ -388,6 +387,27 @@ app.get('/getAllExistingCompanies', db_corporate.getAllExistingCompanies)
 app.delete('/deleteCompany', db_corporate.deleteCompany)
 app.post('/userLogin', db_corporate.loginUser)
 app.get('/user', db_corporate.authenticateToken, db_corporate.getUser);
+app.post('/getCompanyByUserLogin', db_corporate.getCompanyByUserLogin)
+app.put('/updateCompanyLogo/:id', db_corporate.updateCompanyLogo)
+app.put('/updateCompanyData/:id', db_corporate.updateCompanyData)
+app.put('/changePassword/:login', db_corporate.changePassword)
+app.put('/updateUserVerificationCode/:login', db_corporate.updateUserVerificationCode)
+app.post('/getPlanByCompanyId', db_corporate.getPlanByCompanyId)
+app.post('/getStudyCategoriesByCompanyId', db_corporate.getStudyCategoriesByCompanyId)
+app.post('/createCompanyPlan', db_corporate.createCompanyPlan)
+app.post('/getPlanData', db_corporate.getPlanData)
+app.post('/updatePlan', db_corporate.updatePlan)
+app.post('/getPlanCategories', db_corporate.getPlanCategories)
+app.post('/createBranch', db_corporate.createBranch)
+app.post('/getCompanyBranches', db_corporate.getCompanyBranches)
+app.get('/getAllGenders', db_corporate.getAllGenders)
+app.get('/getAllFamilyStatuses', db_corporate.getAllFamilyStatuses)
+app.post('/getJobTitlesByCompanyId', db_corporate.getJobTitlesByCompanyId)
+app.post('/createPerson', db_corporate.createPerson)
+app.post('/addJobTitle', db_corporate.addJobTitle)
+app.post('/getCompanyEmployees', db_corporate.getCompanyEmployees)
+app.put('/updatePersonData/:id', db_corporate.updatePersonData)
+app.put('/updatePersonStatus/:id', db_corporate.updatePersonStatus)
 
 let devPublicRoute = "dev\\goco-backend\\public";
 let productionPublicRoute = "/root/goco-backend/public";
@@ -419,8 +439,8 @@ app.get("/file/:filename", (req, res) => {
 
 app.post(
     "/file/upload",
-    upload.single("file" /* name attribute of <file> element in your form */),
-    (req, res) => {
+    upload.single("file"),
+    async (req, res) => {
         const tempPath = req.file.path;
 
         let randomPostfix = (Math.floor(Math.random() * 1000000) + 1).toString();
@@ -428,16 +448,20 @@ app.post(
         let targetPathWithoutExt = path.join(__dirname, `./uploads/${randomPostfix}`);
         let targetPath =  targetPathWithoutExt + path.extname(req.file.originalname);
         let fileName = `${randomPostfix}${path.extname(req.file.originalname)}`;
-        fs.rename(tempPath, targetPath, err => {
-            if (err) return handleError(err, res);
 
+        console.log('Target Path:', targetPath);
+
+        try {
+            await fs.promises.rename(tempPath, targetPath);
             res
                 .status(200)
                 .contentType("text/plain")
                 .end('https://realibi.kz/file/' + fileName);
-
-	    console.log("new uploaded file name: " + fileName);
-        });
+            console.log("New uploaded file name: " + fileName);
+        } catch (error) {
+            console.error('Error during file moving:', error);
+            res.status(500).send('Error during file processing.');
+        }
     }
 );
 
