@@ -954,6 +954,269 @@ const updatePersonStatus = (request, response) => {
     })
 }
 
+const getEdu = (request, response) => {
+  const { login } = request.body;
+  pool.query(
+      'SELECT co_edu_orgs.* ' +
+      'FROM co_users ' +
+      'JOIN co_edu_orgs ON co_users.user_id = co_edu_orgs.id ' +
+      'WHERE co_users.login = $1',
+      [login],
+      (error, results) => {
+          if (error) {
+              response.status(500).json('error');
+              console.error(error);
+          } else {
+              response.status(200).json(results.rows);
+              console.log('organizations', results.rows);
+          }
+      }
+  );
+};
+
+const getEduCourse = (request, response) => {
+  const { login } = request.body;
+  pool.query(
+      'SELECT co_courses.* ' +
+      'FROM co_users ' +
+      'JOIN co_courses ON co_users.user_id = co_courses.edu_org_id ' +
+      'WHERE co_users.login = $1',
+      [login],
+      (error, results) => {
+          if (error) {
+              response.status(500).json('error');
+              console.error(error);
+          } else {
+              response.status(200).json(results.rows);
+              console.log('courses', results.rows);
+          }
+      }
+  );
+};
+
+const getEduProgram = (request, response) => {
+  const { login } = request.body;
+  pool.query(
+      'SELECT co_programs.* ' +
+      'FROM co_users ' +
+      'JOIN co_courses ON co_users.user_id = co_courses.edu_org_id ' +
+      'JOIN co_programs ON co_courses.id = co_programs.course_id ' +
+      'WHERE co_users.login = $1',
+      [login],
+      (error, results) => {
+          if (error) {
+              response.status(500).json('error');
+              console.error(error);
+          } else {
+              response.status(200).json(results.rows);
+              console.log('programs', results.rows);
+          }
+      }
+  );
+};
+
+const getEduCompany = (request, response) => {
+  const { login } = request.body;
+  pool.query(
+      'SELECT co_companies.* ' +
+      'FROM co_users ' +
+      'JOIN co_courses ON co_users.user_id = co_courses.edu_org_id ' +
+      'JOIN co_companies ON co_courses.company_id = co_companies.id ' +
+      'WHERE co_users.login = $1',
+      [login],
+      (error, results) => {
+          if (error) {
+              response.status(500).json('error');
+              console.error(error);
+          } else {
+              response.status(200).json(results.rows);
+              console.log('companies', results.rows);
+          }
+      }
+  );
+};
+
+const getEduLessons = (request, response) => {
+  const { login } = request.body;
+  pool.query(
+      'SELECT co_lessons.* ' +
+      'FROM co_users ' +
+      'JOIN co_courses ON co_users.user_id = co_courses.edu_org_id ' +
+      'JOIN co_programs ON co_courses.id = co_programs.course_id ' +
+      'JOIN co_lessons ON co_programs.id = co_lessons.program_id ' +
+      'WHERE co_users.login = $1',
+      [login],
+      (error, results) => {
+          if (error) {
+              response.status(500).json('error');
+              console.error(error);
+          } else {
+              response.status(200).json(results.rows);
+              console.log('lessons', results.rows);
+          }
+      }
+  );
+};
+
+const createLessonEdu = (request, response) => {
+  const { title, program_id, tesis, lesson_order } = request.body;
+  pool.query(
+      'INSERT INTO co_lessons (title, program_id, tesis, lesson_order) VALUES ($1, $2, $3, $4) RETURNING id',
+      [title, program_id, tesis, lesson_order],
+      (error, results) => {
+          if (error) {
+              response.status(500).json('error');
+              console.error(error);
+          } else {
+              const lessonId = results.rows[0].id;
+              response.status(200).json({ message: 'Lesson created successfully', lessonId });
+              console.log('Lesson created successfully. Lesson ID:', lessonId);
+          }
+      }
+  );
+};
+
+const updateLessonEdu = (request, response) => {
+  const { title, program_id, tesis, lesson_order, start_time, id } = request.body;
+  pool.query(
+      'UPDATE co_lessons SET title = $1, program_id = $2, tesis = $3, lesson_order = $4, start_time = $5 WHERE id = $6',
+      [title, program_id, tesis, lesson_order, start_time, id],
+      (error, results) => {
+          if (error) {
+              response.status(500).json('error');
+              console.error(error);
+          } else {
+              response.status(200).json('Lesson updated successfully');
+              console.log('Lesson updated successfully');
+          }
+      }
+  );
+};
+
+const deleteLessonEdu = (request, response) => {
+  const { id } = request.body;
+  pool.query(
+      'DELETE FROM co_lessons WHERE id = $1',
+      [id],
+      (error, results) => {
+          if (error) {
+              response.status(500).json('error');
+              console.error(error);
+          } else {
+              response.status(200).json('Lesson deleted successfully');
+              console.log('Lesson deleted successfully');
+          }
+      }
+  );
+};
+
+const addLessonMaterialEdu = (request, response) => {
+  const { title, description, file_type, link, is_lesson_link, lesson_id } = request.body;
+  const query = `
+      INSERT INTO co_lesson_materials (title, description, file_type, link, is_lesson_link, lesson_id)
+      VALUES ($1, $2, $3, $4, $5, $6)
+  `;
+  const values = [title, description, file_type, link, is_lesson_link, lesson_id];
+
+  pool.query(query, values, (error, results) => {
+      if (error) {
+          response.status(500).json('error');
+          console.error(error);
+      } else {
+          response.status(200).json('Lesson material inserted successfully');
+          console.log('Lesson material inserted successfully');
+      }
+  });
+};
+
+const getUsersWithPersonsByLoginEdu = (request, response) => {
+  const { login } = request.body;
+  const query = `
+    SELECT co_persons.*
+    FROM co_users
+    JOIN co_edu_orgs ON co_users.user_id = co_edu_orgs.id
+    JOIN co_courses ON co_edu_orgs.id = co_courses.edu_org_id
+    JOIN co_person_course_middleware ON co_courses.id = co_person_course_middleware.course_id
+    JOIN co_persons ON co_person_course_middleware.person_id = co_persons.id
+    WHERE co_users.login = $1
+  `;
+
+  pool.query(query, [login], (error, results) => {
+    if (error) {
+      response.status(500).json('error');
+      console.error(error);
+    } else {
+      response.status(200).json(results.rows);
+      console.log('persons', results.rows);
+    }
+  });
+};
+
+const getAttendanceControlByLoginEdu = (request, response) => {
+  const { login } = request.body;
+  const query = `
+    SELECT co_attendance_control.*
+    FROM co_users
+    JOIN co_edu_orgs ON co_users.user_id = co_edu_orgs.id
+    JOIN co_courses ON co_edu_orgs.id = co_courses.edu_org_id
+    JOIN co_programs ON co_courses.id = co_programs.course_id
+    JOIN co_lessons ON co_programs.id = co_lessons.program_id
+    JOIN co_attendance_control ON co_lessons.id = co_attendance_control.lesson_id
+    WHERE co_users.login = $1
+  `;
+
+  pool.query(query, [login], (error, results) => {
+    if (error) {
+      response.status(500).json('error');
+      console.error(error);
+    } else {
+      response.status(200).json(results.rows);
+      console.log('attendance control', results.rows);
+    }
+  });
+};
+
+const createAttendanceControlEdu = (request, response) => {
+  const { person_id, lesson_id } = request.body;
+  const query = `
+    INSERT INTO co_attendance_control (person_id, lesson_id)
+    VALUES ($1, $2)
+    RETURNING id
+  `;
+
+  pool.query(query, [person_id, lesson_id], (error, results) => {
+    if (error) {
+      response.status(500).json('error');
+      console.error(error);
+    } else {
+      const newId = results.rows[0].id;
+      response.status(200).json({ id: newId, message: 'Attendance control created successfully' });
+      console.log('Attendance control created successfully. New ID:', newId);
+    }
+  });
+};
+
+
+const createProgramEdu = (request, response) => {
+  const { title, course_id } = request.body;
+  pool.query(
+    'INSERT INTO co_programs (title, course_id) VALUES ($1, $2) RETURNING id',
+    [title, course_id],
+    (error, results) => {
+      if (error) {
+        response.status(500).json('error');
+        console.error(error);
+      } else {
+        const programId = results.rows[0].id;
+        response.status(200).json({ message: 'Program created successfully', programId });
+        console.log('Program created successfully. Program ID:', programId);
+      }
+    }
+  );
+};
+
+
+
 export default {
   createLocation,
   getAllLocations,
@@ -999,5 +1262,18 @@ export default {
   addJobTitle,
   getCompanyEmployees,
   updatePersonData,
-  updatePersonStatus
+  updatePersonStatus,
+  getEdu,
+  getEduCourse,
+  getEduProgram,
+  getEduCompany,
+  getEduLessons,
+  createLessonEdu,
+  updateLessonEdu,
+  deleteLessonEdu,
+  addLessonMaterialEdu,
+  getUsersWithPersonsByLoginEdu,
+  getAttendanceControlByLoginEdu,
+  createAttendanceControlEdu,
+  createProgramEdu
 };
