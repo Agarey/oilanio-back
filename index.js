@@ -12,6 +12,9 @@ import multer from "multer";
 import { dirname } from 'path';
 import { fileURLToPath } from 'url'; 
 import roleMiddleware from './middleware/roleMiddleware.js'
+import archiver from 'archiver';
+import tmp from 'tmp-promise';
+import fetch from 'node-fetch';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -408,6 +411,7 @@ app.post('/addJobTitle', db_corporate.addJobTitle)
 app.post('/getCompanyEmployees', db_corporate.getCompanyEmployees)
 app.put('/updatePersonData/:id', db_corporate.updatePersonData)
 app.put('/updatePersonStatus/:id', db_corporate.updatePersonStatus)
+app.post('/getFilteredCompanyEmployees', db_corporate.getFilteredCompanyEmployees)
 app.post('/getEdu', db_corporate.getEdu)
 app.post('/getEduCourse', db_corporate.getEduCourse)
 app.post('/getEduProgram', db_corporate.getEduProgram)
@@ -429,6 +433,20 @@ app.post('/updateExerciseByIdEdu', db_corporate.updateExerciseByIdEdu)
 app.post('/deleteExerciseByIdEdu', db_corporate.deleteExerciseByIdEdu)
 app.post('/getAnswersByLessonIdsEdu', db_corporate.getAnswersByLessonIdsEdu)
 app.post('/updateAnswerIsCorrectEdu', db_corporate.updateAnswerIsCorrectEdu)
+app.post('/createEduOrgTotal', db_corporate.createEduOrgTotal)
+app.post('/getCompanyCourses', db_corporate.getCompanyCourses)
+app.post('/getTotalDashboardInfo', db_corporate.getTotalDashboardInfo)
+app.post('/getCompanyExpenses', db_corporate.getCompanyExpenses)
+app.post('/getCompanyData', db_corporate.getCompanyData)
+app.post('/checkBudgets', db_corporate.checkBudgets)
+app.post('/getCourseAssignments', db_corporate.getCourseAssignments)
+app.post('/getSelectedCourseInfo', db_corporate.getSelectedCourseInfo)
+app.post('/editSelectedCourseInfo', db_corporate.editSelectedCourseInfo)
+app.post('/getLessonMaterials', db_corporate.getLessonMaterials)
+app.delete('/deleteVerificationCode/:login', db_corporate.deleteVerificationCode);
+app.put('/updateCompanyEmail/:id', db_corporate.updateCompanyEmail)
+app.put('/updateCompanyPhone/:id', db_corporate.updateCompanyPhone)
+app.post('/checkVerificationCode', db_corporate.checkVerificationCode)
 
 let devPublicRoute = "dev\\goco-backend\\public";
 let productionPublicRoute = "/root/goco-backend/public";
@@ -484,6 +502,47 @@ app.post(
             res.status(500).send('Error during file processing.');
         }
     }
+);
+
+app.post(
+  '/downloadArchive',
+  bodyParser.json(),
+  async (req, res) => {
+    const { links, archiveName } = req.body;
+
+    const { path: tmpFilePath, cleanup } = await tmp.file();
+    const output = fs.createWriteStream(tmpFilePath);
+    const archive = archiver('zip');
+    archive.pipe(output);
+
+    try {
+      for (const link of links) {
+        const response = await fetch(link);
+        if (!response.ok) throw new Error(`Couldn't fetch ${link}`);
+
+        const fileName = link.split('/').pop();
+        archive.append(response.body, { name: fileName });
+      }
+
+      archive.finalize();
+
+      output.on('close', () => {
+        res.download(tmpFilePath, `${archiveName}.zip`, (err) => {
+          if (err) {
+            console.error('Error during file download:', err);
+            res.status(500).send('Error during file download.');
+          }
+
+          cleanup();
+        });
+      });
+    } catch (err) {
+      console.error('Error during file archiving:', err);
+      res.status(500).send('Error during file archiving.');
+
+      cleanup();
+    }
+  }
 );
 
 

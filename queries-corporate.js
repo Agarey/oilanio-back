@@ -434,12 +434,14 @@ const hashPassword = (password) => {
 };
 
 const getCompanyByUserLogin = (request, response) => {
-  const { login } = request.body; // Получите login из запроса
+  const { login } = request.body; 
   console.log('login', login)
   const query = `
-    SELECT co_companies.* 
+    SELECT co_companies.*, 
+           co_themes.title AS theme_title, co_themes.background_color, co_themes.button_color, co_themes.component_color, co_themes.text_color
     FROM co_companies 
     JOIN co_users ON co_companies.id = co_users.user_id 
+    JOIN co_themes ON co_companies.theme_id = co_themes.id
     WHERE co_users.login = $1 AND co_users.role_id = 2
   `;
 
@@ -464,8 +466,8 @@ const updateCompanyLogo = (request, response) => {
 
 const updateCompanyData = (request, response) => {
   const id = parseInt(request.params.id)
-  const { title, bin, location_id, actual_address, bg_color } = request.body
-  pool.query('UPDATE co_companies SET title = $1, bin = $2, location_id = $3, actual_address = $4, bg_color = $5 WHERE id = $6', [title, bin, location_id, actual_address, bg_color, id], (error, result) => {
+  const { title, bin, location_id, actual_address, theme_id } = request.body
+  pool.query('UPDATE co_companies SET title = $1, bin = $2, location_id = $3, actual_address = $4, theme_id = $5 WHERE id = $6', [title, bin, location_id, actual_address, theme_id, id], (error, result) => {
     if (error) {
         throw error
     }
@@ -484,16 +486,41 @@ const generateVerificationCode = () => {
 };
 
 const updateUserVerificationCode = async (request, response) => {
-  const login = request.params.login
+  const login = request.params.login;
   const { email } = request.body;
   const verificationCode = generateVerificationCode();
-  console.log('login', login)
-  console.log('request.params', request.params)
   try {
     await pool.query('UPDATE co_users SET verification_code = $1 WHERE login = $2', [verificationCode, login]);
+    await sendEmail([email], 'Your verification code', `Your verification code is: ${verificationCode}`);
+    response.status(200).send('Verification code sent');
+  } catch (e) {
+    console.log(e);
+    return response.status(500).json({ error: 'Server error' });
+  }
+};
 
-    //sendEmail([email], 'Your verification code', `Your verification code is: ${verificationCode}`);
+const deleteVerificationCode = async (request, response) => {
+  const login = request.params.login;
+  try {
+    await pool.query('UPDATE co_users SET verification_code = NULL WHERE login = $1', [login]);
+    response.status(200).send('Verification code deleted');
+  } catch (e) {
+    console.log(e);
+    return response.status(500).json({ error: 'Server error' });
+  }
+};
 
+const checkVerificationCode = async (request, response) => {
+  const { login, verificationCode } = request.body;
+  try {
+    const result = await pool.query('SELECT verification_code FROM co_users WHERE login = $1', [login]);
+    const storedCode = result.rows[0].verification_code;
+    console.log(verificationCode, storedCode)
+    if (verificationCode === storedCode) {
+      response.status(200).send('Verification successful');
+    } else {
+      response.status(403).send('Invalid verification code');
+    }
   } catch (e) {
     console.log(e);
     return response.status(500).json({ error: 'Server error' });
@@ -528,7 +555,15 @@ const changePassword = async (request, response) => {
 
 const getPlanByCompanyId = (request, response) => {
   const { id } = request.body;
-  const query = `SELECT * FROM co_study_plans WHERE company_id = $1`;
+  const query = `
+    SELECT 
+      co_study_plans.*, 
+      SUM(co_courses.price) as total_price 
+    FROM co_study_plans
+    JOIN co_courses ON co_study_plans.company_id = co_courses.company_id
+    WHERE co_study_plans.company_id = $1
+    GROUP BY co_study_plans.id
+  `;
 
   pool.query(query, [id], (error, results) => {
     if (error) {
@@ -650,16 +685,24 @@ const updatePlan = async (request, response) => {
   const { planId, totalBudget, categoryBudgets } = request.body;
 
   try {
+    // Получаем companyId для данного planId
+    const companyResult = await pool.query(
+      `SELECT company_id FROM co_study_plans WHERE id = $1`,
+      [planId]
+    );
+
+    const companyId = companyResult.rows[0].company_id;
+
     await pool.query(
       `UPDATE co_study_plans SET price = $1 WHERE id = $2`,
       [totalBudget, planId]
     );
 
     for (let i = 0; i < categoryBudgets.length; i++) {
-      if (categoryBudgets[i].id) {
+      if (!categoryBudgets[i].isNew) {
         await pool.query(
           `UPDATE co_plan_category_middleware SET price = $1 WHERE plan_id = $2 AND study_category_id = $3`,
-          [categoryBudgets[i].budget, planId, categoryBudgets[i].id]
+          [categoryBudgets[i].budget, planId, categoryBudgets[i].categoryid]
         );
       } else {
         const categoryResult = await pool.query(
@@ -792,9 +835,23 @@ const getCompanyBranches = (request, response) => {
   
   const query = `
     WITH RECURSIVE branch_tree AS (
-      SELECT * FROM co_companies WHERE id = $1
+      SELECT 
+        *,
+        (SELECT SUM(price) FROM co_study_plans WHERE company_id = co_companies.id) AS budget,  /* Заложенный бюджет */
+        (SELECT SUM(price) FROM co_courses WHERE company_id = co_companies.id) AS used_budget, /* Освоенный бюджет */
+        (SELECT SUM(hours_count) FROM co_courses WHERE company_id = co_companies.id) AS total_hours, /* Количество часов */
+        (SELECT COUNT(DISTINCT lesson_id) FROM co_attendance_control WHERE lesson_id IN (SELECT id FROM co_lessons WHERE program_id IN (SELECT id FROM co_programs WHERE course_id IN (SELECT id FROM co_courses WHERE company_id = co_companies.id)))) AS conducted_hours, /* Количество проведенных часов */
+        (SELECT COUNT(*) FROM co_persons WHERE company_id = co_companies.id AND status != 'archived') AS employee_count /* Количество сотрудников */
+      FROM co_companies WHERE id = $1
       UNION ALL
-      SELECT co_companies.* FROM co_companies
+      SELECT 
+        co_companies.*,
+        (SELECT SUM(price) FROM co_study_plans WHERE company_id = co_companies.id) AS budget,
+        (SELECT SUM(price) FROM co_courses WHERE company_id = co_companies.id) AS used_budget,
+        (SELECT SUM(hours_count) FROM co_courses WHERE company_id = co_companies.id) AS total_hours,
+        (SELECT COUNT(DISTINCT lesson_id) FROM co_attendance_control WHERE lesson_id IN (SELECT id FROM co_lessons WHERE program_id IN (SELECT id FROM co_programs WHERE course_id IN (SELECT id FROM co_courses WHERE company_id = co_companies.id)))) AS conducted_hours,
+        (SELECT COUNT(*) FROM co_persons WHERE company_id = co_companies.id AND status != 'archived') AS employee_count
+      FROM co_companies
       JOIN branch_tree ON co_companies.parent_id = branch_tree.id
     )
     SELECT * FROM branch_tree;`;
@@ -829,10 +886,28 @@ const getAllFamilyStatuses = (request, response) => {
 
 const getJobTitlesByCompanyId = (request, response) => {
   const { id } = request.body;
-  console.log('JOB', id)
+
   const query = `
+    WITH RECURSIVE up_tree AS (
+      SELECT * FROM co_companies WHERE id = $1
+      UNION ALL
+      SELECT co_companies.* FROM co_companies
+      JOIN up_tree ON co_companies.id = up_tree.parent_id
+      WHERE co_companies.parent_id != 0
+    ),
+    down_tree AS (
+      SELECT * FROM co_companies WHERE id = $1
+      UNION ALL
+      SELECT co_companies.* FROM co_companies
+      JOIN down_tree ON co_companies.parent_id = down_tree.id
+    ),
+    company_tree AS (
+      SELECT * FROM up_tree
+      UNION
+      SELECT * FROM down_tree
+    )
     SELECT co_job_titles.* FROM co_job_titles
-    WHERE co_job_titles.company_id = $1;`;
+    WHERE co_job_titles.company_id IN (SELECT id FROM company_tree);`;
 
   pool.query(query, [id], (error, results) => {
     if (error) {
@@ -913,13 +988,16 @@ const getCompanyEmployees = (request, response) => {
       JOIN branch_tree ON co_companies.parent_id = branch_tree.id
     )
     SELECT 
-      co_persons.*,
-      co_companies.title AS company_title,
-      co_job_titles.name AS job_title_name
+        co_persons.*,
+        co_companies.title AS company_title,
+        co_job_titles.name AS job_title_name,
+        co_courses.title AS course_title  /* Добавлено */
     FROM co_persons
     JOIN branch_tree ON co_persons.company_id = branch_tree.id
     LEFT JOIN co_companies ON co_persons.company_id = co_companies.id
     LEFT JOIN co_job_titles ON co_persons.job_title_id = co_job_titles.id
+    LEFT JOIN co_person_course_middleware ON co_persons.id = co_person_course_middleware.person_id /* Добавлено */
+    LEFT JOIN co_courses ON co_person_course_middleware.course_id = co_courses.id
     WHERE co_persons.status = $2;`;
 
   pool.query(query, [id, status], (error, results) => {
@@ -953,6 +1031,115 @@ const updatePersonStatus = (request, response) => {
       response.status(201).send(`Person status changed`)
     })
 }
+
+const getFilteredCompanyEmployees = (request, response) => {
+    const { id, status, selectGroupType, allStaffFilter, jobTitleFilter, genderFilter, branchFilter, sortType } = request.body;
+
+    let conditions = `co_persons.status = '${status}'`;
+    let orderCondition = "";
+    if (selectGroupType === 'person') {
+        if (allStaffFilter === 'appointed') {
+            conditions += ` AND EXISTS (SELECT 1 FROM co_person_course_middleware WHERE person_id = co_persons.id)`;
+        }
+    } else if (selectGroupType === 'group') {
+        if (jobTitleFilter) {
+            conditions += ` AND co_persons.job_title_id = ${jobTitleFilter}`;
+        }
+        if (genderFilter) {
+            conditions += ` AND co_persons.sex_id = '${genderFilter}'`;
+        }
+        if (branchFilter) {
+            conditions += ` AND co_persons.company_id = ${branchFilter}`;
+        }
+    } else if (selectGroupType === 'staff_page') {
+        if (branchFilter) {
+            conditions += ` AND co_persons.company_id = ${branchFilter}`;
+        }
+    } else if (selectGroupType === 'plan_page') {
+        conditions += ` AND EXISTS (SELECT 1 FROM co_person_course_middleware WHERE person_id = co_persons.id AND course_id IN (SELECT id FROM co_courses WHERE status = 'in_state'))`;
+        orderCondition = " ORDER BY co_persons.surname"; // Сортировка по фамилии
+    }
+
+    if(selectGroupType === 'person' || selectGroupType === 'staff_page') {
+        if(sortType === 'surname') {
+            orderCondition = " ORDER BY surname";
+        } else if (sortType === 'branch') {
+            orderCondition = " ORDER BY company_title";
+        } else if (sortType === 'job_title') {
+            orderCondition = " ORDER BY job_title_name";
+        }
+    }
+
+    const branchTreeQuery = selectGroupType === 'plan_page'
+        ? `SELECT id FROM co_companies WHERE id = $1`
+        : `SELECT id FROM co_companies WHERE id = $1
+          UNION ALL
+          SELECT co_companies.id FROM co_companies
+          JOIN branch_tree ON co_companies.parent_id = branch_tree.id`;
+
+    const query = `
+      WITH RECURSIVE branch_tree AS (
+          ${branchTreeQuery}
+      ),
+      completed_lessons AS (
+          SELECT 
+              ac.person_id, 
+              c.id as course_id,
+              COUNT(ac.lesson_id) as completed_count 
+          FROM co_attendance_control ac 
+          JOIN co_lessons l ON ac.lesson_id = l.id
+          JOIN co_programs p ON l.program_id = p.id
+          JOIN co_courses c ON p.course_id = c.id
+          GROUP BY ac.person_id, c.id
+      ),
+      person_courses AS (
+          SELECT
+              co_persons.id as person_id,
+              json_agg(
+                  json_build_object(
+                      'course_title', co_courses.title,
+                      'course_progress', ROUND(
+                          (completed_lessons.completed_count::decimal / NULLIF(co_courses.hours_count, 0)) * 100
+                      )
+                  )
+              ) as courses
+          FROM co_persons
+          JOIN co_person_course_middleware ON co_persons.id = co_person_course_middleware.person_id
+          JOIN co_courses ON co_person_course_middleware.course_id = co_courses.id
+          LEFT JOIN completed_lessons ON co_persons.id = completed_lessons.person_id AND co_courses.id = completed_lessons.course_id
+          GROUP BY co_persons.id
+      )
+      SELECT 
+          co_persons.*,
+          co_companies.title AS company_title,
+          co_job_titles.name AS job_title_name,
+          person_courses.courses,
+          (
+              SELECT COUNT(*)
+              FROM co_person_course_middleware pcm
+              WHERE pcm.person_id = co_persons.id
+          ) AS course_count,
+          (
+              SELECT COUNT(*)
+              FROM co_person_course_middleware pcm
+              JOIN co_courses c ON pcm.course_id = c.id
+              LEFT JOIN completed_lessons cl ON pcm.person_id = cl.person_id AND c.id = cl.course_id
+              WHERE pcm.person_id = co_persons.id AND ROUND((cl.completed_count::decimal / NULLIF(c.hours_count, 0)) * 100) = 100
+          ) AS completed_course_count
+      FROM co_persons
+      JOIN branch_tree ON co_persons.company_id = branch_tree.id
+      LEFT JOIN co_companies ON co_persons.company_id = co_companies.id
+      LEFT JOIN co_job_titles ON co_persons.job_title_id = co_job_titles.id
+      LEFT JOIN person_courses ON co_persons.id = person_courses.person_id
+      WHERE ${conditions} ${orderCondition};`;
+
+      pool.query(query, [id], (error, results) => {
+          if (error) {
+              throw error;
+          }
+          response.status(200).json(results.rows);
+      });
+};
 
 const getEdu = (request, response) => {
   const { login } = request.body;
@@ -1371,7 +1558,988 @@ const updateAnswerIsCorrectEdu = async (request, response) => {
   }
 };
 
+const createEduOrgTotal = async (request, response) => {
+    const { company, courseName, categoryId, cost, organizer, email, studyFormat, hoursCount, selectedIds } = request.body;
 
+    const login = generateRandomString(7);
+    const password = generateRandomString(10);
+    const password_hash = hashPassword(password);
+
+    try {
+        await pool.query('BEGIN');
+
+        // Шаг 1
+        const orgRes = await pool.query(
+            `INSERT INTO co_edu_orgs (title, email)
+            VALUES ($1, $2) RETURNING id`,
+            [organizer, email]
+        );
+        const orgId = orgRes.rows[0].id;
+
+        // Шаг 2
+        await pool.query(
+            `INSERT INTO co_users (login, password_hash, role_id, user_id)
+            VALUES ($1, $2, $3, $4)`,
+            [login, password_hash, 3, orgId]
+        );
+
+        // Шаг 3
+        const courseRes = await pool.query(
+            `INSERT INTO co_courses (title, price, format, hours_count, edu_org_id, study_category_id, company_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+            [courseName, cost, studyFormat, hoursCount, orgId, categoryId, company]
+        );
+        const courseId = courseRes.rows[0].id;
+
+        // Шаг 4
+        for(let id of selectedIds){
+            await pool.query(
+                `INSERT INTO co_person_course_middleware (person_id, course_id)
+                VALUES ($1, $2)`,
+                [id, courseId]
+            );
+        }
+
+        await pool.query('COMMIT');
+        sendEmail([email], `Ваши регистрационные данные`,  `Логин: ${login}.\nПароль: ${password}.`);
+        response.json({status: 'success'});
+    } catch (error) {
+        await pool.query('ROLLBACK');
+        response.json({status: 'error', message: error.toString()});
+    }
+};
+
+const getCompanyCourses = (request, response) => {
+  const { id } = request.body;
+  
+  const query = `
+    WITH RECURSIVE branch_tree AS (
+    SELECT id FROM co_companies WHERE id = $1
+    UNION ALL
+    SELECT co_companies.id FROM co_companies
+    JOIN branch_tree ON co_companies.parent_id = branch_tree.id
+  )
+  SELECT 
+    co_courses.*, 
+    co_edu_orgs.title AS edu_org_title,
+    co_companies.title AS company_title,
+    (SELECT COUNT(*) FROM co_person_course_middleware WHERE course_id = co_courses.id) AS employee_count,
+    json_agg(co_lessons.* ORDER BY co_lessons.lesson_order) AS lessons
+  FROM co_courses
+  INNER JOIN co_edu_orgs ON co_courses.edu_org_id = co_edu_orgs.id
+  INNER JOIN branch_tree ON co_courses.company_id = branch_tree.id
+  INNER JOIN co_companies ON co_courses.company_id = co_companies.id
+  LEFT JOIN co_programs ON co_programs.course_id = co_courses.id
+  LEFT JOIN co_lessons ON co_lessons.program_id = co_programs.id
+  GROUP BY co_courses.id, co_edu_orgs.title, co_companies.title;`;
+
+  pool.query(query, [id], (error, results) => {
+    if (error) {
+      throw error;
+    }
+    response.status(200).json(results.rows);
+  });
+};
+
+const getTotalDashboardInfo = (request, response) => {
+  const { id } = request.body;
+  
+  const query = `
+    WITH RECURSIVE branch_tree AS (
+      SELECT id FROM co_companies WHERE id = $1
+      UNION ALL
+      SELECT co_companies.id FROM co_companies
+      JOIN branch_tree ON co_companies.parent_id = branch_tree.id
+    ),
+    lessons_stats AS (
+      SELECT 
+        co_programs.course_id, 
+        COUNT(*) AS total_lessons, 
+        COUNT(DISTINCT co_attendance_control.lesson_id) AS attended_lessons 
+      FROM co_attendance_control 
+      JOIN co_lessons ON co_lessons.id = co_attendance_control.lesson_id
+      JOIN co_programs ON co_programs.id = co_lessons.program_id
+      WHERE co_programs.course_id IN (
+            SELECT id FROM co_courses 
+            WHERE company_id IN (
+              SELECT id FROM branch_tree
+            )
+      )
+      GROUP BY co_programs.course_id
+    ),
+    courses_info AS (
+      SELECT 
+        co_courses.id, 
+        co_courses.hours_count, 
+        co_courses.price, 
+        co_courses.company_id, 
+        lessons_stats.total_lessons, 
+        lessons_stats.attended_lessons 
+      FROM co_courses 
+      LEFT JOIN lessons_stats ON co_courses.id = lessons_stats.course_id
+    ),
+    budget_info AS (
+      SELECT 
+        SUM(price) AS total_budget
+      FROM co_study_plans
+      WHERE company_id = $1
+    ),
+    budget_info_branch AS (
+      SELECT 
+        SUM(price) AS total_budget_branch
+      FROM co_study_plans
+      WHERE company_id IN (
+        SELECT id FROM branch_tree
+      )
+    ),
+    employee_attendance AS (
+      SELECT 
+        AVG(completed_lessons.completed_count::decimal / NULLIF(courses_info.total_lessons, 0)) * 100 AS employee_attendance
+      FROM co_persons
+      JOIN co_person_course_middleware ON co_persons.id = co_person_course_middleware.person_id
+      JOIN courses_info ON co_person_course_middleware.course_id = courses_info.id
+      LEFT JOIN (
+        SELECT 
+          ac.person_id, 
+          c.id as course_id,
+          COUNT(ac.lesson_id) as completed_count 
+        FROM co_attendance_control ac 
+        JOIN co_lessons l ON ac.lesson_id = l.id
+        JOIN co_programs p ON l.program_id = p.id
+        JOIN co_courses c ON p.course_id = c.id
+        GROUP BY ac.person_id, c.id
+      ) completed_lessons ON co_persons.id = completed_lessons.person_id AND courses_info.id = completed_lessons.course_id
+      WHERE co_persons.company_id = $1
+    ),
+    free_courses_hours AS (
+      SELECT 
+        SUM(courses_info.hours_count) AS free_courses_hours
+      FROM courses_info
+      WHERE courses_info.attended_lessons IS NULL
+    )
+    SELECT 
+      SUM(hours_count) AS total_hours, 
+      SUM(CASE WHEN attended_lessons > 0 AND attended_lessons < total_lessons THEN hours_count ELSE 0 END) AS in_process_hours, 
+      SUM(CASE WHEN attended_lessons = total_lessons THEN hours_count ELSE 0 END) AS complieted_couses_hours, 
+      (SELECT total_budget FROM budget_info) AS main_branch_budget,
+      SUM(price) AS in_process_main_branch_budget,
+      (SELECT total_budget FROM budget_info) - SUM(price) AS free_main_branch_budget,
+      (SELECT employee_attendance FROM employee_attendance) AS employee_attendance,
+      (SELECT total_budget_branch FROM budget_info_branch) AS total_budget,
+      SUM(price) AS total_in_process_budget,
+      (SELECT total_budget_branch FROM budget_info_branch) - SUM(price) AS total_free_budget,
+      COUNT(*) AS courses_count, 
+      COUNT(CASE WHEN attended_lessons IS NULL THEN 1 END) AS free_courses_count, 
+      COUNT(CASE WHEN attended_lessons > 0 AND attended_lessons < total_lessons THEN 1 END) AS in_process_courses_count, 
+      COUNT(CASE WHEN attended_lessons = total_lessons THEN 1 END) AS complieted_courses_count,
+      (SELECT free_courses_hours FROM free_courses_hours) AS free_courses_hours
+    FROM courses_info 
+    WHERE courses_info.company_id = $1;
+  `;
+  
+  pool.query(query, [id], (error, results) => {
+    if (error) {
+      throw error;
+    }
+    response.status(200).json(results.rows[0]);
+  });
+};
+
+const getCompanyExpenses = (request, response) => {
+  const { id } = request.body;
+  
+  const query = `
+    SELECT
+      co_courses.title AS course_name,
+      co_courses.price AS course_price,
+      (SELECT price FROM co_study_plans WHERE company_id = $1) AS plan_price
+    FROM co_courses
+    WHERE co_courses.company_id = $1;`;
+
+  pool.query(query, [id], (error, results) => {
+    if (error) {
+      throw error;
+    }
+
+    // Transform the result to include the budget_percentage
+    const transformedResults = results.rows.map(row => {
+      const budget_percentage = ((row.course_price / row.plan_price) * 100).toFixed(2);
+      return { ...row, budget_percentage };
+    });
+
+    response.status(200).json(transformedResults);
+  });
+};
+
+const getCompanyData = (request, response) => {
+  const { id } = request.body;
+
+  const query1 = `WITH RECURSIVE 
+      company_tree AS (
+        SELECT id, parent_id FROM co_companies WHERE id = $1
+        UNION ALL
+        SELECT c.id, c.parent_id FROM co_companies c JOIN company_tree ct ON c.parent_id = ct.id
+      ),
+      branch_tree AS (
+        SELECT 
+          *,
+          (SELECT CEIL(SUM(co_courses.hours_count * 60 / COALESCE(co_programs.lesson_duration, 60))) FROM co_courses LEFT JOIN co_programs ON co_courses.id = co_programs.course_id WHERE co_courses.company_id = co_companies.id) AS all_lessons_total,
+          (SELECT SUM(co_courses.hours_count) FROM co_courses WHERE co_courses.company_id = co_companies.id) AS all_hours_branch
+        FROM co_companies WHERE id = $1
+        UNION ALL
+        SELECT 
+          co_companies.*,
+          (SELECT CEIL(SUM(co_courses.hours_count * 60 / COALESCE(co_programs.lesson_duration, 60))) FROM co_courses LEFT JOIN co_programs ON co_courses.id = co_programs.course_id WHERE co_courses.company_id = co_companies.id) AS all_lessons_total,
+          (SELECT SUM(co_courses.hours_count) FROM co_courses WHERE co_courses.company_id = co_companies.id) AS all_hours_branch
+        FROM co_companies
+        JOIN branch_tree ON co_companies.parent_id = branch_tree.id
+      ),
+      course_data AS (
+        SELECT 
+          p.course_id,
+          COUNT(DISTINCT ac.lesson_id) AS attended_lessons,
+          COUNT(DISTINCT ac.person_id) AS attended_persons
+        FROM co_attendance_control ac
+        JOIN co_lessons l ON ac.lesson_id = l.id
+        JOIN co_programs p ON l.program_id = p.id
+        GROUP BY p.course_id
+      ),
+      in_process_courses AS (
+        SELECT 
+          c.id as course_id,
+          c.company_id,
+          c.hours_count,
+          c.price,
+          MAX(p.lesson_duration) AS max_lesson_duration,
+          COUNT(DISTINCT l.id) AS course_lessons,
+          COALESCE(cd.attended_lessons, 0) AS attended_lessons
+        FROM co_courses c
+        LEFT JOIN co_programs p ON c.id = p.course_id
+        LEFT JOIN co_lessons l ON p.id = l.program_id
+        LEFT JOIN course_data cd ON c.id = cd.course_id
+        WHERE c.company_id IN (SELECT id FROM company_tree)
+        GROUP BY c.id, c.company_id, c.hours_count, c.price, cd.attended_lessons
+        HAVING COUNT(DISTINCT l.id) < CEIL(c.hours_count * 60 / COALESCE(MAX(p.lesson_duration), 60)) AND attended_lessons > 0
+      ),
+      completed_courses AS (
+        SELECT cpm.course_id
+        FROM co_person_course_middleware cpm
+        INNER JOIN co_courses cc ON cc.id = cpm.course_id
+        INNER JOIN co_programs cp ON cp.course_id = cc.id
+        WHERE EXISTS (
+          SELECT 1
+          FROM co_lessons l
+          WHERE l.program_id = cp.id
+          GROUP BY cp.course_id
+          HAVING COUNT(l.id) = CEIL(cc.hours_count * 60 / COALESCE(cp.lesson_duration, 60)) 
+          AND COUNT(l.id) = (
+            SELECT COUNT(*) 
+            FROM co_attendance_control ac 
+            WHERE ac.person_id = cpm.person_id 
+            AND ac.lesson_id IN (SELECT id FROM co_lessons WHERE program_id = cp.id)
+          )
+        )
+      )
+    SELECT 
+      (SELECT SUM(hours_count) FROM in_process_courses) AS in_process_hours_total,
+      (SELECT SUM(hours_count) FROM in_process_courses WHERE company_id = $1) AS in_process_hours_branch,
+      (SELECT COUNT(*) FROM co_courses WHERE company_id IN (SELECT id FROM company_tree)) AS all_courses_count_total,
+      (SELECT COUNT(*) FROM co_courses WHERE company_id = $1) AS all_courses_count_branch,
+      (SELECT COUNT(*) FROM co_persons WHERE company_id IN (SELECT id FROM company_tree) AND status != 'archived') AS all_employees_total,
+      (SELECT COUNT(*) FROM co_persons WHERE company_id = $1 AND status != 'archived') AS all_employees_branch,
+      (SELECT COUNT(*) FROM in_process_courses) AS in_process_courses_total,
+      (SELECT COUNT(*) FROM in_process_courses WHERE company_id = $1) AS in_process_courses_branch,
+      (SELECT SUM(all_lessons_total) FROM branch_tree WHERE id = $1) AS all_lessons_branch,
+      (SELECT SUM(all_hours_branch) FROM branch_tree WHERE id = $1) AS all_hours_branch,
+      SUM(branch_tree.all_lessons_total) AS all_lessons_total,
+      SUM(branch_tree.all_hours_branch) AS all_hours_total,
+      (SELECT COUNT(*) FROM completed_courses WHERE course_id IN (SELECT id FROM co_courses WHERE company_id IN (SELECT id FROM branch_tree))) AS completed_courses_total,
+      (SELECT SUM(hours_count) FROM co_courses WHERE id IN (SELECT course_id FROM completed_courses WHERE course_id IN (SELECT id FROM co_courses WHERE company_id IN (SELECT id FROM branch_tree)))) AS completed_hours_total,
+      (SELECT COUNT(*) FROM completed_courses WHERE course_id IN (SELECT id FROM co_courses WHERE company_id = $1)) AS completed_courses_branch,
+      (SELECT SUM(hours_count) FROM co_courses WHERE id IN (SELECT course_id FROM completed_courses WHERE course_id IN (SELECT id FROM co_courses WHERE company_id = $1))) AS completed_hours_branch,
+      CASE WHEN (SELECT COUNT(*) FROM co_courses WHERE company_id = $1) > 0 THEN CAST((SELECT COUNT(*) FROM completed_courses WHERE course_id IN (SELECT id FROM co_courses WHERE company_id = $1)) AS FLOAT) / (SELECT COUNT(*) FROM co_courses WHERE company_id = $1) ELSE 0 END AS progress_courses_branch,
+      CASE WHEN (SELECT COUNT(*) FROM co_courses WHERE company_id IN (SELECT id FROM company_tree)) > 0 THEN CAST((SELECT COUNT(*) FROM completed_courses WHERE course_id IN (SELECT id FROM co_courses WHERE company_id IN (SELECT id FROM branch_tree))) AS FLOAT) / (SELECT COUNT(*) FROM co_courses WHERE company_id IN (SELECT id FROM company_tree)) ELSE 0 END AS progress_courses_total
+    FROM branch_tree`;  // первый запрос
+  const query2 = `WITH RECURSIVE branch_tree AS (
+      SELECT id FROM co_companies WHERE id = $1
+      UNION ALL
+      SELECT co_companies.id FROM co_companies
+      JOIN branch_tree ON co_companies.parent_id = branch_tree.id
+    ),
+    course_data AS (
+      SELECT 
+        co_courses.id AS course_id, 
+        co_courses.company_id AS company_id,
+        co_courses.hours_count AS hours_count,
+        CASE 
+          WHEN co_programs.lesson_duration IS NULL THEN co_courses.hours_count
+          ELSE CEIL((co_courses.hours_count * 60) / co_programs.lesson_duration)
+        END AS required_lessons,
+        COUNT(DISTINCT co_lessons.id) AS actual_lessons,
+        COUNT(DISTINCT co_attendance_control.person_id) FILTER (WHERE co_attendance_control.lesson_id = co_lessons.id) AS attended_lessons
+      FROM co_courses
+      LEFT JOIN co_programs ON co_courses.id = co_programs.course_id
+      LEFT JOIN co_lessons ON co_programs.id = co_lessons.program_id
+      LEFT JOIN co_attendance_control ON co_lessons.id = co_attendance_control.lesson_id
+      GROUP BY co_courses.id, co_courses.company_id, co_courses.hours_count, co_programs.lesson_duration
+    ),
+    course_status AS (
+      SELECT 
+        course_id,
+        CASE
+          WHEN required_lessons = 0 OR actual_lessons = 0 OR attended_lessons = 0 THEN 'free'
+          WHEN attended_lessons < required_lessons THEN 'in_progress'
+          WHEN attended_lessons = required_lessons THEN 'completed'
+          ELSE 'free'
+        END AS course_status
+      FROM course_data
+    ),
+    company_name AS (
+      SELECT title FROM co_companies WHERE id = $1
+    )
+    SELECT 
+      (SELECT title FROM company_name) AS company_title,
+      COUNT(case when course_status = 'free' and co_courses.company_id = $1 then 1 end) AS free_courses_branch,
+      COUNT(case when course_status = 'free' then 1 end) AS free_courses_total,
+      SUM(case when course_status = 'free' and co_courses.company_id = $1 then co_courses.hours_count else 0 end) AS free_hours_branch,
+      SUM(case when course_status = 'free' then co_courses.hours_count else 0 end) AS free_hours_total
+    FROM branch_tree
+    LEFT JOIN co_courses ON branch_tree.id = co_courses.company_id
+    LEFT JOIN course_status ON co_courses.id = course_status.course_id;`;  // второй запрос
+
+  const query3 = `WITH RECURSIVE branch_tree AS (
+  SELECT id FROM co_companies WHERE id = $1
+  UNION ALL
+  SELECT co_companies.id FROM co_companies
+  JOIN branch_tree ON co_companies.parent_id = branch_tree.id
+),
+branch_courses AS (
+  SELECT co_courses.id FROM co_courses
+  JOIN branch_tree ON co_courses.company_id = branch_tree.id
+),
+total_lessons AS (
+  SELECT 
+    co_courses.id AS course_id, 
+    COUNT(DISTINCT co_lessons.id) AS lessons_count
+  FROM co_courses
+  LEFT JOIN co_programs ON co_courses.id = co_programs.course_id
+  LEFT JOIN co_lessons ON co_programs.id = co_lessons.program_id
+  WHERE co_courses.id IN (SELECT id FROM branch_courses)
+  GROUP BY co_courses.id
+),
+completed_lessons AS (
+  SELECT 
+    co_courses.id AS course_id, 
+    COUNT(DISTINCT co_lessons.id) AS lessons_count
+  FROM co_courses
+  LEFT JOIN co_programs ON co_courses.id = co_programs.course_id
+  LEFT JOIN co_lessons ON co_programs.id = co_lessons.program_id
+  LEFT JOIN co_person_course_middleware ON co_courses.id = co_person_course_middleware.course_id
+  WHERE co_courses.id IN (SELECT id FROM branch_courses)
+    AND co_lessons.id IN (
+      SELECT co_lessons.id
+      FROM co_lessons
+      JOIN co_programs ON co_programs.id = co_lessons.program_id
+      JOIN co_courses ON co_courses.id = co_programs.course_id
+      WHERE (
+        SELECT COUNT(DISTINCT co_person_course_middleware.person_id)
+        FROM co_person_course_middleware
+        WHERE co_person_course_middleware.course_id = co_courses.id
+      ) = (
+        SELECT COUNT(DISTINCT co_attendance_control.person_id)
+        FROM co_attendance_control
+        WHERE co_attendance_control.lesson_id = co_lessons.id
+      )
+    )
+  GROUP BY co_courses.id
+),
+required_lessons AS (
+  SELECT 
+    co_courses.id AS course_id,
+    CEIL((co_courses.hours_count * 60) / COALESCE(co_programs.lesson_duration, 60)) AS required_lessons_count
+  FROM co_courses
+  LEFT JOIN co_programs ON co_courses.id = co_programs.course_id
+  WHERE co_courses.id IN (SELECT id FROM branch_courses)
+),
+course_status AS (
+  SELECT 
+    co_courses.id AS course_id,
+    CASE
+      WHEN co_courses.id NOT IN (SELECT course_id FROM required_lessons) OR 
+           co_courses.id NOT IN (SELECT course_id FROM total_lessons) OR 
+           co_courses.id NOT IN (SELECT course_id FROM completed_lessons) THEN 'free'
+      WHEN completed_lessons.lessons_count < required_lessons.required_lessons_count THEN 'in_progress'
+      WHEN completed_lessons.lessons_count = required_lessons.required_lessons_count THEN 'completed'
+      ELSE 'free'
+    END AS course_status
+  FROM co_courses
+  LEFT JOIN required_lessons ON co_courses.id = required_lessons.course_id
+  LEFT JOIN total_lessons ON co_courses.id = total_lessons.course_id
+  LEFT JOIN completed_lessons ON co_courses.id = completed_lessons.course_id
+)
+SELECT 
+  SUM(completed_lessons.lessons_count) AS completed_lessons_total,
+  SUM(CASE WHEN co_courses.company_id = $1 THEN completed_lessons.lessons_count ELSE 0 END) AS completed_lessons_branch
+FROM branch_tree
+LEFT JOIN co_courses ON branch_tree.id = co_courses.company_id
+LEFT JOIN total_lessons ON co_courses.id = total_lessons.course_id
+LEFT JOIN completed_lessons ON co_courses.id = completed_lessons.course_id
+LEFT JOIN course_status ON co_courses.id = course_status.course_id;`;
+  
+  const query4 = `WITH RECURSIVE branch_tree AS (
+      SELECT id FROM co_companies WHERE id = $1
+      UNION ALL
+      SELECT co_companies.id FROM co_companies
+      JOIN branch_tree ON co_companies.parent_id = branch_tree.id
+    ),
+    lessons_stats AS (
+      SELECT 
+        co_programs.course_id, 
+        COUNT(*) AS total_lessons, 
+        COUNT(DISTINCT co_attendance_control.lesson_id) AS attended_lessons 
+      FROM co_attendance_control 
+      JOIN co_lessons ON co_lessons.id = co_attendance_control.lesson_id
+      JOIN co_programs ON co_programs.id = co_lessons.program_id
+      WHERE co_programs.course_id IN (
+            SELECT id FROM co_courses 
+            WHERE company_id IN (
+              SELECT id FROM branch_tree
+            )
+      )
+      GROUP BY co_programs.course_id
+    ),
+    courses_info AS (
+      SELECT 
+        co_courses.id, 
+        co_courses.price, 
+        co_courses.company_id, 
+        lessons_stats.total_lessons, 
+        lessons_stats.attended_lessons 
+      FROM co_courses 
+      LEFT JOIN lessons_stats ON co_courses.id = lessons_stats.course_id
+    ),
+    employee_attendance AS (
+      SELECT 
+        AVG(completed_lessons.completed_count::decimal / NULLIF(courses_info.total_lessons, 0)) * 100 AS employee_attendance
+      FROM co_persons
+      JOIN co_person_course_middleware ON co_persons.id = co_person_course_middleware.person_id
+      JOIN courses_info ON co_person_course_middleware.course_id = courses_info.id
+      LEFT JOIN (
+        SELECT 
+          ac.person_id, 
+          c.id as course_id,
+          COUNT(ac.lesson_id) as completed_count 
+        FROM co_attendance_control ac 
+        JOIN co_lessons l ON ac.lesson_id = l.id
+        JOIN co_programs p ON l.program_id = p.id
+        JOIN co_courses c ON p.course_id = c.id
+        GROUP BY ac.person_id, c.id
+      ) completed_lessons ON co_persons.id = completed_lessons.person_id AND courses_info.id = completed_lessons.course_id
+      WHERE co_persons.company_id = $1
+    )
+SELECT 
+  (SELECT employee_attendance FROM employee_attendance) AS employee_attendance
+FROM courses_info 
+WHERE courses_info.company_id = $1;`
+
+const query5 = `WITH RECURSIVE branch_tree AS (
+    SELECT id, parent_id FROM co_companies WHERE id = $1
+    UNION ALL
+    SELECT co_companies.id, co_companies.parent_id FROM co_companies
+    JOIN branch_tree ON co_companies.parent_id = branch_tree.id
+),
+completed_lessons AS (
+    SELECT 
+        ac.person_id, 
+        c.id as course_id,
+        COUNT(ac.lesson_id) as completed_count 
+    FROM co_attendance_control ac 
+    JOIN co_lessons l ON ac.lesson_id = l.id
+    JOIN co_programs p ON l.program_id = p.id
+    JOIN co_courses c ON p.course_id = c.id
+    GROUP BY ac.person_id, c.id
+),
+person_courses AS (
+    SELECT
+        co_persons.id as person_id,
+        co_persons.company_id as company_id,
+        co_courses.id as course_id,
+        ROUND(
+            AVG(
+                COALESCE((SELECT completed_count FROM completed_lessons WHERE co_persons.id = completed_lessons.person_id AND co_courses.id = completed_lessons.course_id), 0)::decimal / NULLIF(co_courses.hours_count, 0) * 100
+            )
+        ) as course_progress
+    FROM co_persons
+    JOIN co_person_course_middleware ON co_persons.id = co_person_course_middleware.person_id
+    JOIN co_courses ON co_person_course_middleware.course_id = co_courses.id
+    GROUP BY co_persons.id, co_persons.company_id, co_courses.id
+),
+branch_person_courses AS (
+    SELECT 
+        person_courses.*,
+        MAX(course_progress) OVER (PARTITION BY company_id) as max_branch_progress,
+        MAX(course_progress) OVER () as max_total_progress
+    FROM person_courses
+    WHERE company_id IN (SELECT id FROM branch_tree)
+)
+SELECT
+    AVG(course_progress) FILTER (WHERE company_id = $1) OVER () as progress_study_branch,
+    COUNT(person_id) FILTER (WHERE course_progress = 100 AND company_id = $1) OVER () as completed_study_branch,
+    MAX(person_id) FILTER (WHERE course_progress = max_branch_progress AND company_id = $1) OVER () as best_branch_employee_id,
+    AVG(course_progress) OVER () as progress_study_total,
+    COUNT(person_id) FILTER (WHERE course_progress = 100) OVER () as completed_study_total,
+    MAX(person_id) FILTER (WHERE course_progress = max_total_progress) OVER () as best_total_employee_id
+FROM branch_person_courses
+LIMIT 1;`
+
+const query6 = `WITH RECURSIVE 
+      company_tree AS (
+        SELECT id, parent_id FROM co_companies WHERE id = $1
+        UNION ALL
+        SELECT c.id, c.parent_id FROM co_companies c JOIN company_tree ct ON c.parent_id = ct.id
+      ),
+      branch_tree AS (
+        SELECT 
+          *,
+          (SELECT CEIL(SUM(co_courses.hours_count * 60 / COALESCE(co_programs.lesson_duration, 60))) FROM co_courses LEFT JOIN co_programs ON co_courses.id = co_programs.course_id WHERE co_courses.company_id = co_companies.id) AS all_lessons_total,
+          (SELECT SUM(co_courses.hours_count) FROM co_courses WHERE co_courses.company_id = co_companies.id) AS all_hours_branch
+        FROM co_companies WHERE id = $1
+        UNION ALL
+        SELECT 
+          co_companies.*,
+          (SELECT CEIL(SUM(co_courses.hours_count * 60 / COALESCE(co_programs.lesson_duration, 60))) FROM co_courses LEFT JOIN co_programs ON co_courses.id = co_programs.course_id WHERE co_courses.company_id = co_companies.id) AS all_lessons_total,
+          (SELECT SUM(co_courses.hours_count) FROM co_courses WHERE co_courses.company_id = co_companies.id) AS all_hours_branch
+        FROM co_companies
+        JOIN branch_tree ON co_companies.parent_id = branch_tree.id
+      ),
+      course_data AS (
+        SELECT 
+          p.course_id,
+          COUNT(DISTINCT ac.lesson_id) AS attended_lessons,
+          COUNT(DISTINCT ac.person_id) AS attended_persons
+        FROM co_attendance_control ac
+        JOIN co_lessons l ON ac.lesson_id = l.id
+        JOIN co_programs p ON l.program_id = p.id
+        GROUP BY p.course_id
+      ),
+      in_process_courses AS (
+        SELECT 
+          c.id as course_id,
+          c.company_id,
+          c.hours_count,
+          c.price,
+          MAX(p.lesson_duration) AS max_lesson_duration,
+          COUNT(DISTINCT l.id) AS course_lessons,
+          COALESCE(cd.attended_lessons, 0) AS attended_lessons
+        FROM co_courses c
+        LEFT JOIN co_programs p ON c.id = p.course_id
+        LEFT JOIN co_lessons l ON p.id = l.program_id
+        LEFT JOIN course_data cd ON c.id = cd.course_id
+        WHERE c.company_id IN (SELECT id FROM company_tree)
+        GROUP BY c.id, c.company_id, c.hours_count, c.price, cd.attended_lessons
+        HAVING COUNT(DISTINCT l.id) < CEIL(c.hours_count * 60 / COALESCE(MAX(p.lesson_duration), 60)) AND attended_lessons > 0
+      ),
+      full_budget_courses AS (
+          SELECT 
+            sp.company_id,
+            SUM(sp.price) AS total_price
+          FROM co_study_plans sp
+          WHERE sp.company_id IN (SELECT id FROM company_tree)
+          GROUP BY sp.company_id
+      ),
+      purchased_courses AS (
+        SELECT 
+          c.id as course_id,
+          c.company_id,
+          c.hours_count,
+          SUM(c.price) as price
+        FROM co_courses c
+        WHERE c.company_id IN (SELECT id FROM company_tree)
+        GROUP BY c.id, c.company_id, c.hours_count
+      ),
+      total_budget AS (
+        SELECT SUM(co_study_plans.price) AS full_budget_total
+        FROM co_study_plans
+        WHERE co_study_plans.company_id IN (SELECT id FROM branch_tree)
+      ),
+      branch_budget AS (
+        SELECT SUM(co_study_plans.price) AS full_budget_branch
+        FROM co_study_plans
+        WHERE co_study_plans.company_id = $1
+      )
+
+SELECT 
+  tb.full_budget_total,
+  bb.full_budget_branch,
+  
+  (SELECT SUM(price) FROM in_process_courses WHERE company_id = $1) AS in_process_budget_branch,
+  (SELECT SUM(price) FROM in_process_courses) AS in_process_budget_total,
+  
+  (SELECT SUM(price) FROM purchased_courses WHERE company_id = $1) AS purchased_budget_branch,
+  (SELECT SUM(price) FROM purchased_courses) AS purchased_budget_total,
+  
+  (bb.full_budget_branch - (SELECT SUM(price) FROM purchased_courses WHERE company_id = $1)) AS free_budget_branch,
+  (tb.full_budget_total - (SELECT SUM(price) FROM purchased_courses)) AS free_budget_total,
+  
+  (bb.full_budget_branch - (SELECT SUM(price) FROM in_process_courses WHERE company_id = $1)) AS residual_budget_branch,
+  (tb.full_budget_total - (SELECT SUM(price) FROM in_process_courses)) AS residual_budget_total
+FROM total_budget tb, branch_budget bb;`
+
+  pool.query(query1, [id], (error, results1) => {
+    if (error) {
+      throw error;
+    }
+
+    pool.query(query2, [id], (error, results2) => {
+      if (error) {
+        throw error;
+      }
+
+    pool.query(query3, [id], (error, results3) => {
+      if (error) {
+        throw error;
+      }
+
+    pool.query(query4, [id], (error, results4) => {
+      if (error) {
+        throw error;
+      }
+
+    pool.query(query5, [id], (error, results5) => {
+      if (error) {
+        throw error;
+      }
+
+    pool.query(query6, [id], (error, results6) => {
+      if (error) {
+        throw error;
+      }
+
+      response.status(200).json({ ...results1.rows[0], ...results2.rows[0], ...results3.rows[0], ...results4.rows[0], ...results5.rows[0], ...results6.rows[0] });
+    });});});});});
+  });
+};
+
+const checkBudgets = (request, response) => {
+  const { id } = request.body;
+  
+  const query = `
+    WITH RECURSIVE 
+      company_tree AS (
+        SELECT id, parent_id FROM co_companies WHERE id = $1
+        UNION ALL
+        SELECT c.id, c.parent_id FROM co_companies c JOIN company_tree ct ON c.parent_id = ct.id
+      ),
+      branch_tree AS (
+        SELECT 
+          *,
+          (SELECT CEIL(SUM(co_courses.hours_count * 60 / COALESCE(co_programs.lesson_duration, 60))) FROM co_courses LEFT JOIN co_programs ON co_courses.id = co_programs.course_id WHERE co_courses.company_id = co_companies.id) AS all_lessons_total,
+          (SELECT SUM(co_courses.hours_count) FROM co_courses WHERE co_courses.company_id = co_companies.id) AS all_hours_branch
+        FROM co_companies WHERE id = $1
+        UNION ALL
+        SELECT 
+          co_companies.*,
+          (SELECT CEIL(SUM(co_courses.hours_count * 60 / COALESCE(co_programs.lesson_duration, 60))) FROM co_courses LEFT JOIN co_programs ON co_courses.id = co_programs.course_id WHERE co_courses.company_id = co_companies.id) AS all_lessons_total,
+          (SELECT SUM(co_courses.hours_count) FROM co_courses WHERE co_courses.company_id = co_companies.id) AS all_hours_branch
+        FROM co_companies
+        JOIN branch_tree ON co_companies.parent_id = branch_tree.id
+      ),
+      course_data AS (
+        SELECT 
+          p.course_id,
+          COUNT(DISTINCT ac.lesson_id) AS attended_lessons,
+          COUNT(DISTINCT ac.person_id) AS attended_persons
+        FROM co_attendance_control ac
+        JOIN co_lessons l ON ac.lesson_id = l.id
+        JOIN co_programs p ON l.program_id = p.id
+        GROUP BY p.course_id
+      ),
+      in_process_courses AS (
+        SELECT 
+          c.id as course_id,
+          c.company_id,
+          c.hours_count,
+          c.price,
+          MAX(p.lesson_duration) AS max_lesson_duration,
+          COUNT(DISTINCT l.id) AS course_lessons,
+          COALESCE(cd.attended_lessons, 0) AS attended_lessons
+        FROM co_courses c
+        LEFT JOIN co_programs p ON c.id = p.course_id
+        LEFT JOIN co_lessons l ON p.id = l.program_id
+        LEFT JOIN course_data cd ON c.id = cd.course_id
+        WHERE c.company_id IN (SELECT id FROM company_tree)
+        GROUP BY c.id, c.company_id, c.hours_count, c.price, cd.attended_lessons
+        HAVING COUNT(DISTINCT l.id) < CEIL(c.hours_count * 60 / COALESCE(MAX(p.lesson_duration), 60)) AND attended_lessons > 0
+      ),
+      full_budget_courses AS (
+          SELECT 
+            sp.company_id,
+            SUM(sp.price) AS total_price
+          FROM co_study_plans sp
+          WHERE sp.company_id IN (SELECT id FROM company_tree)
+          GROUP BY sp.company_id
+      ),
+      purchased_courses AS (
+        SELECT 
+          c.id as course_id,
+          c.company_id,
+          c.hours_count,
+          SUM(c.price) as price
+        FROM co_courses c
+        WHERE c.company_id IN (SELECT id FROM company_tree)
+        GROUP BY c.id, c.company_id, c.hours_count
+      ),
+      total_budget AS (
+        SELECT SUM(co_study_plans.price) AS full_budget_total
+        FROM co_study_plans
+        WHERE co_study_plans.company_id IN (SELECT id FROM branch_tree)
+      ),
+      branch_budget AS (
+        SELECT SUM(co_study_plans.price) AS full_budget_branch
+        FROM co_study_plans
+        WHERE co_study_plans.company_id = $1
+      )
+
+SELECT 
+  tb.full_budget_total,
+  bb.full_budget_branch,
+  
+  (SELECT SUM(price) FROM in_process_courses WHERE company_id = $1) AS in_process_budget_branch,
+  (SELECT SUM(price) FROM in_process_courses) AS in_process_budget_total,
+  
+  (SELECT SUM(price) FROM purchased_courses WHERE company_id = $1) AS purchased_budget_branch,
+  (SELECT SUM(price) FROM purchased_courses) AS purchased_budget_total,
+  
+  (bb.full_budget_branch - (SELECT SUM(price) FROM purchased_courses WHERE company_id = $1)) AS free_budget_branch,
+  (tb.full_budget_total - (SELECT SUM(price) FROM purchased_courses)) AS free_budget_total,
+  
+  (bb.full_budget_branch - (SELECT SUM(price) FROM in_process_courses WHERE company_id = $1)) AS residual_budget_branch,
+  (tb.full_budget_total - (SELECT SUM(price) FROM in_process_courses)) AS residual_budget_total
+FROM total_budget tb, branch_budget bb;`;
+
+  pool.query(query, [id], (error, results) => {
+    if (error) {
+      throw error;
+    }
+    response.status(200).json(results.rows);
+  });
+};
+
+const getCourseAssignments = (request, response) => {
+  const { id } = request.body;
+  
+  const query = `
+    WITH RECURSIVE company_tree AS (
+      SELECT 
+        *
+      FROM co_companies 
+      WHERE id = $1
+      UNION ALL
+      SELECT 
+        co_companies.*
+      FROM co_companies
+      JOIN company_tree ON co_companies.parent_id = company_tree.id
+    ),
+    assignments AS (
+      SELECT 
+        co_person_course_middleware.*,
+        co_courses.title as course_title,
+        co_courses.company_id as course_company_id,
+        co_persons.company_id as person_company_id
+      FROM co_person_course_middleware
+      JOIN co_courses ON co_courses.id = co_person_course_middleware.course_id
+      JOIN co_persons ON co_persons.id = co_person_course_middleware.person_id
+    )
+    SELECT * 
+    FROM assignments
+    WHERE course_company_id IN (SELECT id FROM company_tree) 
+      AND person_company_id IN (SELECT id FROM company_tree);`;
+
+  pool.query(query, [id], (error, results) => {
+    if (error) {
+      throw error;
+    }
+    response.status(200).json(results.rows);
+  });
+};
+
+const getSelectedCourseInfo = (request, response) => {
+  const { id } = request.body;
+
+  const courseInfoQuery = `
+    SELECT 
+      co_courses.*, 
+      co_companies.id AS company_id,
+      co_companies.title AS company_name,
+      co_edu_orgs.*
+    FROM 
+      co_courses
+    INNER JOIN 
+      co_companies ON co_courses.company_id = co_companies.id
+    LEFT JOIN
+      co_edu_orgs ON co_courses.edu_org_id = co_edu_orgs.id
+    WHERE co_courses.id = $1`;
+
+  const categoryInfoQuery = `
+    SELECT 
+      co_study_categories.name AS category_name,
+      co_plan_category_middleware.price AS category_price
+    FROM 
+      co_plan_category_middleware
+    INNER JOIN 
+      co_study_categories ON co_plan_category_middleware.study_category_id = co_study_categories.id
+    WHERE co_plan_category_middleware.plan_id = $1`;
+
+  const programInfoQuery = `
+    SELECT 
+      co_programs.*
+    FROM 
+      co_programs
+    WHERE co_programs.course_id = $1`;
+
+  const countsQuery = `
+    SELECT 
+      (SELECT COUNT(*) FROM co_person_course_middleware WHERE course_id = $1) AS student_count,
+      (SELECT COUNT(*) FROM co_programs WHERE course_id = $1) AS lesson_count`;
+
+  pool
+    .query(courseInfoQuery, [id])
+    .then(results => {
+      const courseInfo = results.rows[0];
+
+      pool
+        .query(categoryInfoQuery, [id])
+        .then(categoryResults => {
+          const categoryInfo = categoryResults.rows[0];
+
+          pool
+            .query(programInfoQuery, [id])
+            .then(programResults => {
+              const programInfo = programResults.rows[0];
+
+              pool
+                .query(countsQuery, [id])
+                .then(countResults => {
+                  const counts = countResults.rows[0];
+
+                  response.status(200).json({
+                    ...courseInfo,
+                    ...categoryInfo,
+                    ...programInfo,
+                    ...counts
+                  });
+                });
+            });
+        });
+    })
+    .catch(error => {
+      throw error;
+    });
+};
+
+const editSelectedCourseInfo = async (request, response) => {
+    const { courseId, courseName, categoryId, cost, organizerId, organizer, email, studyFormat, hoursCount, selectedIds } = request.body;
+
+    try {
+        await pool.query('BEGIN');
+
+        // Шаг 1: Обновление курса
+        await pool.query(
+            `UPDATE co_courses
+            SET title = $1, study_category_id = $2, price = $3, format = $4, hours_count = $5
+            WHERE id = $6`,
+            [courseName, categoryId, cost, studyFormat, hoursCount, courseId]
+        );
+
+        // Шаг 2: Обновление организатора
+        await pool.query(
+            `UPDATE co_edu_orgs
+            SET title = $1, email = $2
+            WHERE id = $3`,
+            [organizer, email, organizerId]
+        );
+
+        // Шаг 3: Удаление и добавление связей
+        const existingRecords = await pool.query(
+            `SELECT person_id FROM co_person_course_middleware WHERE course_id = $1`,
+            [courseId]
+        );
+        
+        const existingIds = existingRecords.rows.map(row => row.person_id);
+        
+        const toAdd = selectedIds.filter(id => !existingIds.includes(id));
+        const toRemove = existingIds.filter(id => !selectedIds.includes(id));
+        
+        for(let id of toAdd){
+            await pool.query(
+                `INSERT INTO co_person_course_middleware (person_id, course_id)
+                VALUES ($1, $2)`,
+                [id, courseId]
+            );
+        }
+        
+        for(let id of toRemove){
+            await pool.query(
+                `DELETE FROM co_person_course_middleware
+                WHERE person_id = $1 AND course_id = $2`,
+                [id, courseId]
+            );
+            
+            await pool.query(
+                `DELETE FROM co_attendance_control 
+                WHERE person_id = $1 AND lesson_id IN (
+                    SELECT l.id FROM co_lessons l 
+                    JOIN co_programs p ON l.program_id = p.id 
+                    WHERE p.course_id = $2
+                )`,
+                [id, courseId]
+            );
+        }
+
+        await pool.query('COMMIT');
+        response.json({status: 'success'});
+    } catch (error) {
+        await pool.query('ROLLBACK');
+        response.json({status: 'error', message: error.toString()});
+    }
+};
+
+const getLessonMaterials = async (request, response) => {
+    const { lessonId } = request.body;
+    console.log('lessonId', lessonId)
+    try {
+        const materials = await pool.query(
+            `SELECT * FROM co_lesson_materials WHERE lesson_id = $1`,
+            [lessonId]
+        );
+
+        response.json({status: 'success', data: materials.rows});
+    } catch (error) {
+        response.json({status: 'error', message: error.toString()});
+    }
+};
+
+const updateCompanyEmail = (request, response) => {
+  const id = parseInt(request.params.id);
+  const { email } = request.body;
+  pool.query('UPDATE co_companies SET emails = $1 WHERE id = $2', [email, id], (error, results) => {
+    if (error) {
+      throw error;
+    }
+    response.status(201).send(`Company email updated`);
+  });
+};
+
+const updateCompanyPhone = (request, response) => {
+  const id = parseInt(request.params.id);
+  const { phone } = request.body;
+  pool.query('UPDATE co_companies SET phones = $1 WHERE id = $2', [phone, id], (error, results) => {
+    if (error) {
+      throw error;
+    }
+    response.status(201).send(`Company phone updated`);
+  });
+};
 
 
 export default {
@@ -1420,6 +2588,7 @@ export default {
   getCompanyEmployees,
   updatePersonData,
   updatePersonStatus,
+  getFilteredCompanyEmployees,
   getEdu,
   getEduCourse,
   getEduProgram,
@@ -1440,5 +2609,19 @@ export default {
   updateExerciseByIdEdu,
   deleteExerciseByIdEdu,
   getAnswersByLessonIdsEdu,
-  updateAnswerIsCorrectEdu
+  updateAnswerIsCorrectEdu,
+  createEduOrgTotal,
+  getCompanyCourses,
+  getTotalDashboardInfo,
+  getCompanyExpenses,
+  getCompanyData,
+  checkBudgets,
+  getCourseAssignments,
+  getSelectedCourseInfo,
+  editSelectedCourseInfo,
+  getLessonMaterials,
+  deleteVerificationCode,
+  updateCompanyEmail,
+  updateCompanyPhone,
+  checkVerificationCode
 };
