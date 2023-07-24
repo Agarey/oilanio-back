@@ -421,6 +421,14 @@ app.post('/getUsersWithPersonsByLoginEdu', db_corporate.getUsersWithPersonsByLog
 app.post('/getAttendanceControlByLoginEdu', db_corporate.getAttendanceControlByLoginEdu)
 app.post('/createAttendanceControlEdu', db_corporate.createAttendanceControlEdu)
 app.post('/createProgramEdu', db_corporate.createProgramEdu)
+app.post('/createCertificateEdu', db_corporate.createCertificateEdu)
+app.post('/issueCertificateEdu', db_corporate.issueCertificateEdu)
+app.post('/createExerciseEdu', db_corporate.createExerciseEdu)
+app.post('/getExercisesByLessonIdEdu', db_corporate.getExercisesByLessonIdEdu)
+app.post('/updateExerciseByIdEdu', db_corporate.updateExerciseByIdEdu)
+app.post('/deleteExerciseByIdEdu', db_corporate.deleteExerciseByIdEdu)
+app.post('/getAnswersByLessonIdsEdu', db_corporate.getAnswersByLessonIdsEdu)
+app.post('/updateAnswerIsCorrectEdu', db_corporate.updateAnswerIsCorrectEdu)
 
 let devPublicRoute = "dev\\goco-backend\\public";
 let productionPublicRoute = "/root/goco-backend/public";

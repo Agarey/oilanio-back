@@ -1059,20 +1059,28 @@ const getEduLessons = (request, response) => {
 };
 
 const createLessonEdu = (request, response) => {
-  const { title, program_id, tesis, lesson_order } = request.body;
+  const { title, program_id, tesis, lesson_order, lessonStartTime } = request.body;
+  const queryParams = [title, program_id, tesis, lesson_order];
+  let query = 'INSERT INTO co_lessons (title, program_id, tesis, lesson_order) VALUES ($1, $2, $3, $4) RETURNING id';
+
+  if (lessonStartTime) {
+    queryParams.push(lessonStartTime);
+    query = 'INSERT INTO co_lessons (title, program_id, tesis, lesson_order, start_time) VALUES ($1, $2, $3, $4, $5) RETURNING id';
+  }
+
   pool.query(
-      'INSERT INTO co_lessons (title, program_id, tesis, lesson_order) VALUES ($1, $2, $3, $4) RETURNING id',
-      [title, program_id, tesis, lesson_order],
-      (error, results) => {
-          if (error) {
-              response.status(500).json('error');
-              console.error(error);
-          } else {
-              const lessonId = results.rows[0].id;
-              response.status(200).json({ message: 'Lesson created successfully', lessonId });
-              console.log('Lesson created successfully. Lesson ID:', lessonId);
-          }
+    query,
+    queryParams,
+    (error, results) => {
+      if (error) {
+        response.status(500).json('error');
+        console.error(error);
+      } else {
+        const lessonId = results.rows[0].id;
+        response.status(200).json({ message: 'Lesson created successfully', lessonId });
+        console.log('Lesson created successfully. Lesson ID:', lessonId);
       }
+    }
   );
 };
 
@@ -1198,10 +1206,10 @@ const createAttendanceControlEdu = (request, response) => {
 
 
 const createProgramEdu = (request, response) => {
-  const { title, course_id } = request.body;
+  const { title, course_id, lesson_duration } = request.body;
   pool.query(
-    'INSERT INTO co_programs (title, course_id) VALUES ($1, $2) RETURNING id',
-    [title, course_id],
+    'INSERT INTO co_programs (title, course_id, lesson_duration) VALUES ($1, $2, $3) RETURNING id',
+    [title, course_id, lesson_duration],
     (error, results) => {
       if (error) {
         response.status(500).json('error');
@@ -1214,6 +1222,155 @@ const createProgramEdu = (request, response) => {
     }
   );
 };
+
+const createCertificateEdu = (request, response) => {
+  const { title, program_id, link } = request.body;
+
+  // Здесь используется pool.query() вашей библиотеки для работы с базой данных
+  pool.query(
+    'INSERT INTO co_sertificates (title, program_id, link) VALUES ($1, $2, $3) RETURNING id',
+    [title, program_id, link],
+    (error, results) => {
+      if (error) {
+        response.status(500).json('error');
+        console.error(error);
+      } else {
+        const certificateId = results.rows[0].id;
+        response.status(200).json({ message: 'Certificate created successfully', certificateId });
+        console.log('Certificate created successfully. Certificate ID:', certificateId);
+      }
+    }
+  );
+};
+
+const issueCertificateEdu = (request, response) => {
+  const { person_id, sertificate_id } = request.body;
+
+  // Здесь используется pool.query() вашей библиотеки для работы с базой данных
+  pool.query(
+    'INSERT INTO co_issued_sertificates (person_id, sertificate_id) VALUES ($1, $2) RETURNING id',
+    [person_id, sertificate_id],
+    (error, results) => {
+      if (error) {
+        response.status(500).json('error');
+        console.error(error);
+      } else {
+        const issuedCertificateId = results.rows[0].id;
+        response.status(200).json({ message: 'Certificate issued successfully', issuedCertificateId });
+        console.log('Certificate issued successfully. Issued Certificate ID:', issuedCertificateId);
+      }
+    }
+  );
+};
+
+const createExerciseEdu = async (request, response) => {
+  const { lesson_id, text, correct_answer, exer_order } = request.body;
+
+  try {
+    const result = await pool.query(
+      'INSERT INTO co_exercises (lesson_id, text, correct_answer, exer_order) VALUES ($1, $2, $3, $4) RETURNING id',
+      [lesson_id, text, correct_answer, exer_order]
+    );
+
+    const exerciseId = result.rows[0].id;
+
+    response.status(200).json({ message: 'Exercise created successfully', exerciseId });
+    console.log('Exercise created successfully. Exercise ID:', exerciseId);
+  } catch (error) {
+    response.status(500).json('error');
+    console.error(error);
+  }
+};
+
+
+
+const getExercisesByLessonIdEdu = (request, response) => {
+  const { lesson_id } = request.body;
+
+  // Здесь используется pool.query() вашей библиотеки для работы с базой данных
+  pool.query(
+    'SELECT * FROM co_exercises WHERE lesson_id = $1',
+    [lesson_id],
+    (error, results) => {
+      if (error) {
+        response.status(500).json('error');
+        console.error(error);
+      } else {
+        const exercises = results.rows;
+        response.status(200).json(exercises);
+        console.log('Exercises retrieved successfully:', exercises);
+      }
+    }
+  );
+};
+
+const updateExerciseByIdEdu = async (request, response) => {
+  const { id, text, correct_answer, exer_order } = request.body;
+
+  try {
+    await pool.query(
+      'UPDATE co_exercises SET text = $1, correct_answer = $2, exer_order = $3 WHERE id = $4',
+      [text, correct_answer, exer_order, id]
+    );
+
+    response.status(200).json({ message: 'Exercise updated successfully' });
+    console.log('Exercise updated successfully');
+  } catch (error) {
+    response.status(500).json('error');
+    console.error(error);
+  }
+};
+
+
+const deleteExerciseByIdEdu = async (request, response) => {
+  const { id } = request.body;
+
+  try {
+    await pool.query('DELETE FROM co_exercises WHERE id = $1', [id]);
+
+    response.status(200).json({ message: 'Exercise deleted successfully' });
+    console.log('Exercise deleted successfully');
+  } catch (error) {
+    response.status(500).json('error');
+    console.error(error);
+  }
+};
+
+const getAnswersByLessonIdsEdu = async (request, response) => {
+  const { id } = request.body;
+
+  try {
+    const result = await pool.query(
+      'SELECT * FROM co_answers WHERE lesson_id = $1',
+      [id]
+    );
+
+    const answers = result.rows;
+    response.status(200).json(answers);
+    console.log('Answers retrieved successfully:', answers);
+  } catch (error) {
+    response.status(500).json('error');
+    console.error(error);
+  }
+};
+
+const updateAnswerIsCorrectEdu = async (request, response) => {
+  const { id, is_correct } = request.body;
+
+  try {
+    await pool.query(
+      'UPDATE co_answers SET is_correct = $1 WHERE id = $2',
+      [is_correct, id]
+    );
+
+    response.status(200).json({ message: 'Answer is_correct updated successfully' });
+    console.log('Answer is_correct updated successfully');
+  } catch (error) {
+    response.status(500).json('error');
+    console.error(error);
+  }
+};
+
 
 
 
@@ -1275,5 +1432,13 @@ export default {
   getUsersWithPersonsByLoginEdu,
   getAttendanceControlByLoginEdu,
   createAttendanceControlEdu,
-  createProgramEdu
+  createProgramEdu,
+  createCertificateEdu,
+  issueCertificateEdu,
+  createExerciseEdu,
+  getExercisesByLessonIdEdu,
+  updateExerciseByIdEdu,
+  deleteExerciseByIdEdu,
+  getAnswersByLessonIdsEdu,
+  updateAnswerIsCorrectEdu
 };
