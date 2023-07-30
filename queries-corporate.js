@@ -663,12 +663,13 @@ const getPlanData = async (request, response) => {
     const plan = planResult.rows[0];
 
     const categoriesResult = await pool.query(
-      `SELECT study_category_id AS categoryId, price AS budget 
-       FROM co_plan_category_middleware 
-       WHERE plan_id = $1`,
+      `SELECT middleware.study_category_id AS categoryId, categories.name AS categoryName, middleware.price AS budget 
+      FROM co_plan_category_middleware AS middleware
+      JOIN co_study_categories AS categories
+      ON middleware.study_category_id = categories.id
+      WHERE middleware.plan_id = $1`,
       [id]
     );
-
     const categoryBudgets = categoriesResult.rows;
 
     response.status(200).json({
