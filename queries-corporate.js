@@ -560,15 +560,17 @@ const getPlanByCompanyId = (request, response) => {
       co_study_plans.*, 
       SUM(co_courses.price) as total_price 
     FROM co_study_plans
-    JOIN co_courses ON co_study_plans.company_id = co_courses.company_id
+    LEFT JOIN co_courses ON co_study_plans.company_id = co_courses.company_id
     WHERE co_study_plans.company_id = $1
     GROUP BY co_study_plans.id
   `;
 
   pool.query(query, [id], (error, results) => {
     if (error) {
+      console.log(error)
       throw error;
     }
+
     response.status(200).json(results.rows);
   });
 };
@@ -639,7 +641,7 @@ const createCompanyPlan = async (request, response) => {
       );
     }
 
-    response.status(201).send(`Plan added`);
+    response.status(201).json({ success: true, message: 'Plan added' });
   } catch (error) {
     console.error('Error:', error);
     response.status(500).send('Error in creating plan');
