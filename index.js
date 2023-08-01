@@ -446,6 +446,8 @@ app.post('/getLessonMaterials', db_corporate.getLessonMaterials)
 app.delete('/deleteVerificationCode/:login', db_corporate.deleteVerificationCode);
 app.put('/updateCompanyEmail/:id', db_corporate.updateCompanyEmail)
 app.put('/updateCompanyPhone/:id', db_corporate.updateCompanyPhone)
+app.put('/updateCompanyLogin/:id', db_corporate.updateCompanyLogin)
+app.put('/updateUserPassword/:login', db_corporate.updateUserPassword)
 app.post('/checkVerificationCode', db_corporate.checkVerificationCode)
 
 let devPublicRoute = "dev\\goco-backend\\public";

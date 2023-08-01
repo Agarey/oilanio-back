@@ -2544,6 +2544,63 @@ const updateCompanyPhone = (request, response) => {
   });
 };
 
+const updateCompanyLogin = (request, response) => {
+  const id = parseInt(request.params.id);
+  const { oldLogin, newLogin } = request.body;
+
+  // сначала проверьте, существует ли уже новый логин
+  pool.query('SELECT * FROM co_users WHERE login = $1', [newLogin], (error, results) => {
+    if (error) {
+      throw error;
+    }
+
+    if (results.rows.length > 0) {
+      // новый логин уже занят
+      response.status(409).send('This login is already taken');
+    } else {
+      // новый логин свободен, так что мы можем обновить его
+      pool.query('UPDATE co_users SET login = $1 WHERE login = $2', [newLogin, oldLogin], (error, results) => {
+        if (error) {
+          throw error;
+        }
+        response.status(201).send('Company login updated');
+      });
+    }
+  });
+};
+
+const updateUserPassword = async (request, response) => {
+  const { oldPassword, newPassword } = request.body;
+  const { login } = request.params;
+
+  try {
+    // Ищем пользователя по логину
+    const user = await pool.query('SELECT * FROM co_users WHERE login = $1', [login]);
+
+    if (user.rows.length > 0) {
+      // Проверяем старый пароль
+      const validPassword = await bcrypt.compare(oldPassword, user.rows[0].password_hash);
+      
+      if (!validPassword) {
+        return response.status(400).json({error: 'Введен неверный старый пароль'});
+      }
+
+      // Если старый пароль верный, хешируем и обновляем новый пароль
+      const newHashedPassword = hashPassword(newPassword);
+      await pool.query('UPDATE co_users SET password_hash = $1 WHERE login = $2', [newHashedPassword, login]);
+      
+      return response.status(200).json({message: 'Пароль успешно изменен'});
+
+    } else {
+      return response.status(400).json({ error: 'Пользователь с таким логином не найден' });
+    }
+
+  } catch (e) {
+    console.log(e);
+    return response.status(500).json({ error: 'Ошибка сервера' });
+  }
+};
+
 
 export default {
   createLocation,
@@ -2626,5 +2683,7 @@ export default {
   deleteVerificationCode,
   updateCompanyEmail,
   updateCompanyPhone,
-  checkVerificationCode
+  updateCompanyLogin,
+  checkVerificationCode,
+  updateUserPassword
 };
