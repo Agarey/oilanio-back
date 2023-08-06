@@ -2602,6 +2602,449 @@ const updateUserPassword = async (request, response) => {
 };
 
 
+
+const getStudentCommentsByStudentIdAndExerciseIdEdu = (request, response) => {
+  const { user_id, exercise_id } = request.body;
+
+  // Здесь используется pool.query() вашей библиотеки для работы с базой данных
+  pool.query(
+    'SELECT * FROM co_student_comments WHERE user_id = $1 AND exercise_id = $2',
+    [user_id, exercise_id],
+    (error, results) => {
+      if (error) {
+        response.status(500).json('error');
+        console.error(error);
+      } else {
+        const studentComments = results.rows;
+        response.status(200).json(studentComments);
+        console.log('Student comments retrieved successfully:', studentComments);
+      }
+    }
+  );
+};
+
+const getEduCommentsByStudentIdAndExerciseIdEdu = (request, response) => {
+  const { user_id, exercise_id } = request.body;
+
+  // Здесь используется pool.query() вашей библиотеки для работы с базой данных
+  pool.query(
+    'SELECT * FROM co_edu_comments WHERE user_id = $1 AND exercise_id = $2',
+    [user_id, exercise_id],
+    (error, results) => {
+      if (error) {
+        response.status(500).json('error');
+        console.error(error);
+      } else {
+        const eduComments = results.rows;
+        response.status(200).json(eduComments);
+        console.log('Educational comments retrieved successfully:', eduComments);
+      }
+    }
+  );
+};
+
+const createStudentCommentEdu = (request, response) => {
+  const { user_id, exercise_id, text, date } = request.body;
+
+  // Здесь используется pool.query() вашей библиотеки для работы с базой данных
+  pool.query(
+    'INSERT INTO co_student_comments (user_id, exercise_id, text, date) VALUES ($1, $2, $3, $4)',
+    [user_id, exercise_id, text, date],
+    (error, result) => {
+      if (error) {
+        response.status(500).json('error');
+        console.error(error);
+      } else {
+        response.status(201).json('Comment added successfully');
+        console.log('New comment added successfully');
+      }
+    }
+  );
+};
+
+const createEduCommentEdu = (request, response) => {
+  const { user_id, exercise_id, text, date } = request.body;
+
+  // Здесь используется pool.query() вашей библиотеки для работы с базой данных
+  pool.query(
+    'INSERT INTO co_edu_comments (user_id, exercise_id, text, date) VALUES ($1, $2, $3, $4)',
+    [user_id, exercise_id, text, date],
+    (error, result) => {
+      if (error) {
+        response.status(500).json('error');
+        console.error(error);
+      } else {
+        response.status(201).json('Comment added successfully');
+        console.log('New comment added successfully');
+      }
+    }
+  );
+};
+
+const StudentAllInfo = (request, response) => {
+  const { login, course_id } = request.body;
+
+  // Шаг 1
+  pool.query(
+    'SELECT user_id FROM co_users WHERE login = $1',
+    [login],
+    (error, result) => {
+      if (error) {
+        throw error;
+      }
+
+      const user_id = result.rows[0].user_id;
+
+      // Шаг 2
+      pool.query(
+        'SELECT * FROM co_persons WHERE id = $1',
+        [user_id],
+        (error, result) => {
+          if (error) {
+            throw error;
+          }
+
+          const co_persons_data = result.rows;
+
+          // Шаг 3
+          pool.query(
+            'SELECT course_id FROM co_person_course_middleware WHERE person_id = $1',
+            [user_id],
+            (error, result) => {
+              if (error) {
+                throw error;
+              }
+
+              if (result.rows.length === 0) {
+                // Course not found
+                response.send('Course not found.');
+                return;
+              }
+
+              const course_ids = result.rows.map(row => row.course_id);
+
+              // Шаг 4
+              const fetchCourses = (course_id, callback) => {
+                pool.query(
+                  'SELECT * FROM co_courses WHERE id = $1',
+                  [course_id],
+                  (error, result) => {
+                    if (error) {
+                      throw error;
+                    }
+
+                    callback(result.rows[0]);
+                  }
+                );
+              };
+
+              // Fetch data for each course_id
+              const co_courses_data = [];
+              let fetchedCoursesCount = 0;
+
+              for (const course_id of course_ids) {
+                fetchCourses(course_id, (courseData) => {
+                  co_courses_data.push(courseData);
+
+                  fetchedCoursesCount++;
+                  if (fetchedCoursesCount === course_ids.length) {
+                    // All courses data fetched, continue to Шаг 5
+                    continueToStep5();
+                  }
+                });
+              }
+
+              const continueToStep5 = () => {
+                // Шаг 5
+                let selected_course = co_courses_data.filter(el => +el.id === +course_id)
+                const edu_org_id = selected_course[0].edu_org_id;
+                // console.log(co_courses_data, selected_course, edu_org_id, "co_courses_data")
+
+                // Шаг 6
+                pool.query(
+                  'SELECT title FROM co_edu_orgs WHERE id = $1',
+                  [edu_org_id],
+                  (error, result) => {
+                    if (error) {
+                      throw error;
+                    }
+
+                    const co_edu_orgs_title = result.rows[0].title;
+
+                    // Шаг 7
+                    pool.query(
+                      'SELECT * FROM co_programs WHERE course_id = $1',
+                      [selected_course[0].id],
+                      (error, result) => {
+                        if (error) {
+                          throw error;
+                        }
+
+                        const co_programs_data = result.rows;
+
+                        // Шаг 8
+                        pool.query(
+                          'SELECT * FROM co_lessons WHERE program_id IN (SELECT id FROM co_programs WHERE course_id = $1)',
+                          [selected_course[0].id],
+                          (error, result) => {
+                            if (error) {
+                              throw error;
+                            }
+
+                            const co_lessons_data = result.rows;
+
+                            // Шаг 9
+                            pool.query(
+                              'SELECT id FROM co_lessons WHERE program_id IN (SELECT id FROM co_programs WHERE course_id = $1)',
+                              [selected_course[0].id],
+                              (error, result) => {
+                                if (error) {
+                                  throw error;
+                                }
+
+                                const lesson_ids = result.rows.map(row => row.id);
+                                const lesson_ids_str = lesson_ids.join(',');
+
+                                // Step 10 - Use the comma-separated string in the query
+                                pool.query(
+                                  'SELECT * FROM co_answers WHERE lesson_id IN (' + lesson_ids_str + ') AND user_id = $1',
+                                  [user_id],
+                                  (error, result) => {
+                                    if (error) {
+                                      throw error;
+                                    }
+
+                                    const co_answers_data = result.rows;
+
+                                    // Шаг 11
+                                    pool.query(
+                                      'SELECT * FROM co_edu_comments WHERE user_id = $1',
+                                      [user_id],
+                                      (error, result) => {
+                                        if (error) {
+                                          throw error;
+                                        }
+
+                                        const co_edu_comments_data = result.rows;
+
+                                        // Шаг 12
+                                        pool.query(
+                                          'SELECT * FROM co_student_comments WHERE user_id = $1',
+                                          [user_id],
+                                          (error, result) => {
+                                            if (error) {
+                                              throw error;
+                                            }
+
+                                            const co_student_comments_data = result.rows;
+
+                                            // Шаг 13
+                                            pool.query(
+                                              'SELECT * FROM co_attendance_control WHERE person_id = $1 AND lesson_id IN (' + lesson_ids_str + ')',
+                                              [user_id],
+                                              (error, result) => {
+                                                if (error) {
+                                                  throw error;
+                                                }
+
+                                                const co_attendance_control_data = result.rows;
+
+                                                // Additional Step for co_issued_sertificates
+                                                pool.query(
+                                                  'SELECT * FROM co_issued_sertificates WHERE person_id = $1',
+                                                  [user_id],
+                                                  (error, result) => {
+                                                    if (error) {
+                                                      throw error;
+                                                    }
+
+                                                    const co_issued_sertificates_data = result.rows;
+                                                    const sertificate_ids = co_issued_sertificates_data.map(row => row.sertificate_id);
+                                                    const sertificate_ids_str = sertificate_ids.join(',');
+
+                                                    // Final Step - Fetch co_sertificates data using sertificate_ids_str
+                                                    pool.query(
+                                                      'SELECT * FROM co_sertificates WHERE id IN (' + sertificate_ids_str + ')',
+                                                      (error, result) => {
+                                                        if (error) {
+                                                          throw error;
+                                                        }
+
+                                                        const co_sertificates_data = result.rows;
+
+                                                        // Prepare and send the response
+                                                        const finalResponse = {
+                                                          co_persons_data,
+                                                          co_courses_data,
+                                                          co_edu_orgs_title,
+                                                          co_programs_data,
+                                                          co_lessons_data,
+                                                          co_answers_data,
+                                                          co_edu_comments_data,
+                                                          co_student_comments_data,
+                                                          co_attendance_control_data,
+                                                          co_issued_sertificates_data,
+                                                          co_sertificates_data,
+                                                        };
+
+                                                        response.send(finalResponse);
+                                                      }
+                                                    );
+                                                  }
+                                                );
+                                              }
+                                            );
+                                          }
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              };
+            }
+          );
+        }
+      );
+    }
+  );
+};
+
+const getUserCoursesByLoginStudent = (request, response) => {
+  const { login } = request.body;
+
+  pool.query(
+    'SELECT user_id FROM co_users WHERE login = $1',
+    [login],
+    (error, results) => {
+      if (error) {
+        response.status(500).json('error');
+        console.error(error);
+      } else {
+        const user_id = results.rows[0].user_id;
+
+        pool.query(
+          'SELECT * FROM co_person_course_middleware WHERE person_id = $1',
+          [user_id],
+          (error, results) => {
+            if (error) {
+              response.status(500).json('error');
+              console.error(error);
+            } else {
+              response.status(200).json(results.rows);
+            }
+          }
+        );
+      }
+    }
+  );
+};
+
+const updatePersonData2 = (request, response) => {
+  const {
+    id,
+    avatar,
+    surname,
+    name,
+    patronymic,
+    birthdate,
+    address,
+    experience,
+    family_status_id,
+    childs_count
+  } = request.body;
+
+  // Преобразуем id в числовой тип, предполагая, что он является числом
+  const parsedId = parseInt(id);
+
+  pool.query(
+    'UPDATE co_persons SET avatar = $1, surname = $2, name = $3, patronymic = $4, birthdate = $5, address = $6, experience = $7, family_status_id = $8, childs_count = $9 WHERE id = $10',
+    [avatar, surname, name, patronymic, birthdate, address, experience, family_status_id, childs_count, parsedId],
+    (error, result) => {
+      if (error) {
+        throw error;
+      }
+      response.status(201).send(`Person data changed`);
+    }
+  );
+};
+
+/////////
+const updatePersonEmail = (request, response) => {
+  const id = parseInt(request.params.id);
+  const { email } = request.body;
+  pool.query('UPDATE co_persons SET email = $1 WHERE id = $2', [email, id], (error, results) => {
+    if (error) {
+      throw error;
+    }
+    response.status(201).send(`Company email updated`);
+  });
+};
+
+const updatePersonPhone = (request, response) => {
+  const id = parseInt(request.params.id);
+  const { phone } = request.body;
+  pool.query('UPDATE co_persons SET phone = $1 WHERE id = $2', [phone, id], (error, results) => {
+    if (error) {
+      throw error;
+    }
+    response.status(201).send(`Company phone updated`);
+  });
+};
+
+const updatePersonLogin = (request, response) => {
+  const id = parseInt(request.params.id);
+  const { oldLogin, newLogin } = request.body;
+
+  // сначала проверьте, существует ли уже новый логин
+  pool.query('SELECT * FROM co_users WHERE login = $1', [newLogin], (error, results) => {
+    if (error) {
+      throw error;
+    }
+
+    if (results.rows.length > 0) {
+      // новый логин уже занят
+      response.status(409).send('This login is already taken');
+    } else {
+      // новый логин свободен, так что мы можем обновить его
+      pool.query('UPDATE co_users SET login = $1 WHERE login = $2', [newLogin, oldLogin], (error, results) => {
+        if (error) {
+          throw error;
+        }
+        response.status(201).send('Person login updated');
+      });
+    }
+  });
+};
+
+const createAnswerStudent = async (request, response) => {
+  const { text, exercise_id, is_correct, lesson_id, user_id } = request.body;
+
+  try {
+    const result = await pool.query(
+      'INSERT INTO co_answers (text, exercise_id, is_correct, lesson_id, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+      [text, exercise_id, is_correct, lesson_id, user_id]
+    );
+
+    const coAnswerId = result.rows[0].id;
+
+    response.status(200).json({ message: 'CoAnswer created successfully', coAnswerId });
+    console.log('CoAnswer created successfully. CoAnswer ID:', coAnswerId);
+  } catch (error) {
+    response.status(500).json('error');
+    console.error(error);
+  }
+};
+
+
+
 export default {
   createLocation,
   getAllLocations,
@@ -2685,5 +3128,16 @@ export default {
   updateCompanyPhone,
   updateCompanyLogin,
   checkVerificationCode,
-  updateUserPassword
+  updateUserPassword,
+  getStudentCommentsByStudentIdAndExerciseIdEdu,
+  getEduCommentsByStudentIdAndExerciseIdEdu,
+  createStudentCommentEdu,
+  createEduCommentEdu,
+  StudentAllInfo,
+  getUserCoursesByLoginStudent,
+  updatePersonData2,
+  updatePersonEmail,
+  updatePersonPhone,
+  updatePersonLogin,
+  createAnswerStudent
 };
