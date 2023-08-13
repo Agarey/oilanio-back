@@ -391,6 +391,7 @@ app.delete('/deleteCompany', db_corporate.deleteCompany)
 app.post('/userLogin', db_corporate.loginUser)
 app.get('/user', db_corporate.authenticateToken, db_corporate.getUser);
 app.post('/getCompanyByUserLogin', db_corporate.getCompanyByUserLogin)
+app.post('/getCompanyByPersonLogin', db_corporate.getCompanyByPersonLogin)
 app.put('/updateCompanyLogo/:id', db_corporate.updateCompanyLogo)
 app.put('/updateCompanyData/:id', db_corporate.updateCompanyData)
 app.put('/changePassword/:login', db_corporate.changePassword)

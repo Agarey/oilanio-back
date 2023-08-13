@@ -453,6 +453,35 @@ const getCompanyByUserLogin = (request, response) => {
   });
 };
 
+const getCompanyByPersonLogin = (request, response) => {
+  const { login } = request.body; 
+  console.log('login', login);
+
+  const query = `
+    SELECT co_companies.*, 
+           co_themes.title AS theme_title, 
+           co_themes.background_color, 
+           co_themes.button_color, 
+           co_themes.component_color, 
+           co_themes.text_color,
+           co_courses.title AS course_title
+    FROM co_companies 
+    JOIN co_persons ON co_companies.id = co_persons.company_id
+    JOIN co_users ON co_persons.id = co_users.user_id 
+    JOIN co_themes ON co_companies.theme_id = co_themes.id
+    JOIN co_person_course_middleware ON co_persons.id = co_person_course_middleware.person_id
+    JOIN co_courses ON co_person_course_middleware.course_id = co_courses.id
+    WHERE co_users.login = $1 AND co_users.role_id = 4
+  `;
+
+  pool.query(query, [login], (error, results) => {
+    if (error) {
+      throw error;
+    }
+    response.status(200).json(results.rows);
+  });
+};
+
 const updateCompanyLogo = (request, response) => {
   const id = parseInt(request.params.id)
   const { logo } = request.body
@@ -2804,6 +2833,11 @@ const StudentAllInfo = (request, response) => {
 
                                 const lesson_ids = result.rows.map(row => row.id);
                                 const lesson_ids_str = lesson_ids.join(',');
+                                if (!lesson_ids_str) {
+                                  // Handle the error case here, e.g., send an empty response or an error message
+                                  response.send({error: 'No lessons found for provided course.'});
+                                  return;
+                                }
 
                                 // Step 10 - Use the comma-separated string in the query
                                 pool.query(
@@ -2860,7 +2894,17 @@ const StudentAllInfo = (request, response) => {
 
                                                     const co_issued_sertificates_data = result.rows;
                                                     const sertificate_ids = co_issued_sertificates_data.map(row => row.sertificate_id);
+                                                    if (lesson_ids.length === 0) {
+                                                      // Handle the error case here, e.g., send an empty response or an error message
+                                                      response.send({error: 'No lessons found.'});
+                                                      return;
+                                                    }
                                                     const sertificate_ids_str = sertificate_ids.join(',');
+                                                    if (!sertificate_ids_str) {
+                                                      // Handle the error case here, e.g., send an empty response or an error message
+                                                      response.send({error: 'No lessons found for provided course.'});
+                                                      return;
+                                                    }
 
                                                     // Final Step - Fetch co_sertificates data using sertificate_ids_str
                                                     pool.query(
@@ -3071,6 +3115,7 @@ export default {
   getUser,
   authenticateToken,
   getCompanyByUserLogin,
+  getCompanyByPersonLogin,
   updateCompanyLogo,
   updateCompanyData,
   changePassword,
