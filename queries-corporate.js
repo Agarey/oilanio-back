@@ -5,9 +5,9 @@ import axios from 'axios';
 import { request, response } from 'express';
 moment.locale('ru');
 import jwt from 'jsonwebtoken'
-import {secret} from "./config.js"
-import {v4 as uuidv4} from 'uuid';
-import {productionPoolOptions, sendEmail} from './accesses.js';
+import { secret } from "./config.js"
+import { v4 as uuidv4 } from 'uuid';
+import { productionPoolOptions, sendEmail } from './accesses.js';
 import bcrypt from 'bcryptjs';
 
 const Pool = pg.Pool
@@ -26,9 +26,9 @@ const loginUser = async (request, response) => {
 
     if (user.rows.length > 0) {
       const validPassword = await bcrypt.compare(password, user.rows[0].password_hash);
-      
+
       if (!validPassword) {
-        return response.status(400).json({error: 'Введен неверный пароль'});
+        return response.status(400).json({ error: 'Введен неверный пароль' });
       }
 
       const token = jwt.sign(
@@ -100,7 +100,7 @@ const getAllLocations = (request, response) => {
 }
 
 const deleteLocation = (request, response) => {
-  const {id} = request.body
+  const { id } = request.body
   console.log('deleteLocation', id)
   pool.query('DELETE FROM co_locations WHERE id = $1', [id], (error, results) => {
     if (error) {
@@ -133,7 +133,7 @@ const getAllDirectors = (request, response) => {
 }
 
 const deleteDirector = (request, response) => {
-  const {id} = request.body
+  const { id } = request.body
   console.log('deleteDirector', id)
   pool.query('DELETE FROM co_directors WHERE id = $1', [id], (error, results) => {
     if (error) {
@@ -166,7 +166,7 @@ const getAllEnterpriseStatuses = (request, response) => {
 }
 
 const deleteEnterpriseStatus = (request, response) => {
-  const {id} = request.body
+  const { id } = request.body
   console.log('deleteEnterpriseStatus', id)
   pool.query('DELETE FROM co_enterprise_statuses WHERE id = $1', [id], (error, results) => {
     if (error) {
@@ -199,7 +199,7 @@ const getAllLegalForms = (request, response) => {
 }
 
 const deleteLegalForm = (request, response) => {
-  const {id} = request.body
+  const { id } = request.body
   console.log('deleteLegalForm', id)
   pool.query('DELETE FROM co_legal_forms WHERE id = $1', [id], (error, results) => {
     if (error) {
@@ -232,7 +232,7 @@ const getAllOwnershipForms = (request, response) => {
 }
 
 const deleteOwnershipForm = (request, response) => {
-  const {id} = request.body
+  const { id } = request.body
   console.log('deleteOwnershipForm', id)
   pool.query('DELETE FROM co_ownership_forms WHERE id = $1', [id], (error, results) => {
     if (error) {
@@ -265,7 +265,7 @@ const getAllActivityTypes = (request, response) => {
 }
 
 const deleteActivityType = (request, response) => {
-  const {id} = request.body
+  const { id } = request.body
   console.log('deleteActivityType', id)
   pool.query('DELETE FROM co_activity_types WHERE id = $1', [id], (error, results) => {
     if (error) {
@@ -393,7 +393,7 @@ const createCompany = (request, response) => {
           }
 
           // Отправка уведомления о создании компании
-          sendEmail([emails], `Ваши регистрационные данные`,  `Логин: ${login}.\nПароль: ${password}.`)
+          sendEmail([emails], `Ваши регистрационные данные`, `Логин: ${login}.\nПароль: ${password}.`)
 
           response.status(201).send(`Company added`);
         }
@@ -403,7 +403,7 @@ const createCompany = (request, response) => {
 };
 
 const deleteCompany = (request, response) => {
-  const {id} = request.body
+  const { id } = request.body
   console.log('deleteCompany', id)
   pool.query('DELETE FROM co_companies WHERE id = $1', [id], (error, results) => {
     if (error) {
@@ -434,7 +434,7 @@ const hashPassword = (password) => {
 };
 
 const getCompanyByUserLogin = (request, response) => {
-  const { login } = request.body; 
+  const { login } = request.body;
   console.log('login', login)
   const query = `
     SELECT co_companies.*, 
@@ -454,7 +454,7 @@ const getCompanyByUserLogin = (request, response) => {
 };
 
 const getCompanyByPersonLogin = (request, response) => {
-  const { login } = request.body; 
+  const { login } = request.body;
   console.log('login', login);
 
   const query = `
@@ -486,11 +486,11 @@ const updateCompanyLogo = (request, response) => {
   const id = parseInt(request.params.id)
   const { logo } = request.body
   pool.query('UPDATE co_companies SET logo = $1 WHERE id = $2', [logo, id], (error, result) => {
-        if (error) {
-            throw error
-        }
-        response.status(201).send(`Company logo updated`)
-    })
+    if (error) {
+      throw error
+    }
+    response.status(201).send(`Company logo updated`)
+  })
 }
 
 const updateCompanyData = (request, response) => {
@@ -498,10 +498,10 @@ const updateCompanyData = (request, response) => {
   const { title, bin, location_id, actual_address, theme_id } = request.body
   pool.query('UPDATE co_companies SET title = $1, bin = $2, location_id = $3, actual_address = $4, theme_id = $5 WHERE id = $6', [title, bin, location_id, actual_address, theme_id, id], (error, result) => {
     if (error) {
-        throw error
+      throw error
     }
-      response.status(201).send(`Company data changed`)
-    })
+    response.status(201).send(`Company data changed`)
+  })
 }
 
 const generateVerificationCode = () => {
@@ -565,9 +565,9 @@ const changePassword = async (request, response) => {
 
     if (user.rows.length > 0) {
       const validPassword = await bcrypt.compare(oldPassword, user.rows[0].password_hash);
-      
+
       if (!validPassword) {
-        return response.status(400).json({error: 'Incorrect password'});
+        return response.status(400).json({ error: 'Incorrect password' });
       }
 
       const newPasswordHash = hashPassword(newPassword);
@@ -774,7 +774,7 @@ const createBranch = (request, response) => {
       if (error) {
         throw error;
       }
-      
+
       const parentCompanyData = result.rows[0];
 
       // Вставка данных в таблицу co_companies
@@ -851,7 +851,7 @@ const createBranch = (request, response) => {
               }
 
               // Отправка уведомления о создании филиала
-              sendEmail([emails], `Ваши регистрационные данные`,  `Логин: ${login}.\nПароль: ${password}.`)
+              sendEmail([emails], `Ваши регистрационные данные`, `Логин: ${login}.\nПароль: ${password}.`)
 
               response.status(201).send(`Branch added`);
             }
@@ -864,7 +864,7 @@ const createBranch = (request, response) => {
 
 const getCompanyBranches = (request, response) => {
   const { id } = request.body;
-  
+
   const query = `
     WITH RECURSIVE branch_tree AS (
       SELECT 
@@ -955,63 +955,63 @@ const getJobTitlesByCompanyId = (request, response) => {
 };
 
 const createPerson = (request, response) => {
-    const { surname, name, patronymic, jobTitleId, birthdate, sex_id, family_status_id, childsCount, address, email, category, company_id } = request.body;
-    console.log(request.body)
-    pool.query(
-        `INSERT INTO co_persons (surname, name, patronymic, job_title_id, birthdate, sex_id, family_status_id, childs_count, address, company_id, email, category)
+  const { surname, name, patronymic, jobTitleId, birthdate, sex_id, family_status_id, childsCount, address, email, category, company_id } = request.body;
+  console.log(request.body)
+  pool.query(
+    `INSERT INTO co_persons (surname, name, patronymic, job_title_id, birthdate, sex_id, family_status_id, childs_count, address, company_id, email, category)
         VALUES ($1, $2, $3, $4, $5::date, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
-        [surname, name, patronymic, jobTitleId, birthdate, sex_id, family_status_id, childsCount, address, company_id, email, category],
+    [surname, name, patronymic, jobTitleId, birthdate, sex_id, family_status_id, childsCount, address, company_id, email, category],
+    (error, result) => {
+      if (error) {
+        throw error;
+      }
+
+      const personId = result.rows[0].id;
+
+      // Создаем запись в co_users
+      const login = generateRandomString(7);
+      const password = generateRandomString(10);
+      const password_hash = hashPassword(password);
+      const role_id = 4;
+      const user_id = personId;
+
+      pool.query(
+        `INSERT INTO co_users (login, password_hash, role_id, user_id) VALUES ($1, $2, $3, $4)`,
+        [login, password_hash, role_id, user_id],
         (error, result) => {
-            if (error) {
-                throw error;
-            }
+          if (error) {
+            throw error;
+          }
 
-            const personId = result.rows[0].id;
+          // Отправляем уведомление о создании пользователя
+          sendEmail([email], `Ваши регистрационные данные`, `Логин: ${login}.\nПароль: ${password}.`)
 
-            // Создаем запись в co_users
-            const login = generateRandomString(7);
-            const password = generateRandomString(10);
-            const password_hash = hashPassword(password);
-            const role_id = 4;
-            const user_id = personId;
-
-            pool.query(
-                `INSERT INTO co_users (login, password_hash, role_id, user_id) VALUES ($1, $2, $3, $4)`,
-                [login, password_hash, role_id, user_id],
-                (error, result) => {
-                    if (error) {
-                        throw error;
-                    }
-
-                    // Отправляем уведомление о создании пользователя
-                    sendEmail([email], `Ваши регистрационные данные`,  `Логин: ${login}.\nПароль: ${password}.`)
-
-                    response.status(201).send(`Person added`);
-                }
-            );
+          response.status(201).send(`Person added`);
         }
-    );
+      );
+    }
+  );
 };
 
 const addJobTitle = (request, response) => {
-    console.log(request.body)
-    const { name, companyId } = request.body;
-    pool.query(
-        `INSERT INTO co_job_titles (name, company_id) VALUES ($1, $2) RETURNING id`,
-        [name, companyId],
-        (error, result) => {
-            if (error) {
-                return response.status(400).json({ error: error.toString() });
-            }
-            // Измените это, чтобы отправить JSON-объект вместо строки.
-            response.status(201).json({ id: result.rows[0].id });
-        }
-    );
+  console.log(request.body)
+  const { name, companyId } = request.body;
+  pool.query(
+    `INSERT INTO co_job_titles (name, company_id) VALUES ($1, $2) RETURNING id`,
+    [name, companyId],
+    (error, result) => {
+      if (error) {
+        return response.status(400).json({ error: error.toString() });
+      }
+      // Измените это, чтобы отправить JSON-объект вместо строки.
+      response.status(201).json({ id: result.rows[0].id });
+    }
+  );
 };
 
 const getCompanyEmployees = (request, response) => {
   const { id, status } = request.body;
-  
+
   const query = `
     WITH RECURSIVE branch_tree AS (
       SELECT id FROM co_companies WHERE id = $1
@@ -1046,10 +1046,10 @@ const updatePersonData = (request, response) => {
   console.log('tut?', request.body)
   pool.query('UPDATE co_persons SET surname = $1, name = $2, patronymic = $3, job_title_id = $4, category = $5, birthdate = $6, sex_id = $7, family_status_id = $8, childs_count = $9, address = $10, email = $11 WHERE id = $12', [surname, name, patronymic, jobTitle, category, birthdate, sex, family_status_id, childsCount, address, email, id], (error, result) => {
     if (error) {
-        throw error
+      throw error
     }
-      response.status(201).send(`Person data changed`)
-    })
+    response.status(201).send(`Person data changed`)
+  })
 }
 
 const updatePersonStatus = (request, response) => {
@@ -1058,58 +1058,58 @@ const updatePersonStatus = (request, response) => {
   console.log('tut?', id, status, request.body)
   pool.query('UPDATE co_persons SET status = $1 WHERE id = $2', [status, id], (error, result) => {
     if (error) {
-        throw error
+      throw error
     }
-      response.status(201).send(`Person status changed`)
-    })
+    response.status(201).send(`Person status changed`)
+  })
 }
 
 const getFilteredCompanyEmployees = (request, response) => {
-    const { id, status, selectGroupType, allStaffFilter, jobTitleFilter, genderFilter, branchFilter, sortType } = request.body;
+  const { id, status, selectGroupType, allStaffFilter, jobTitleFilter, genderFilter, branchFilter, sortType } = request.body;
 
-    let conditions = `co_persons.status = '${status}'`;
-    let orderCondition = "";
-    if (selectGroupType === 'person') {
-        if (allStaffFilter === 'appointed') {
-            conditions += ` AND EXISTS (SELECT 1 FROM co_person_course_middleware WHERE person_id = co_persons.id)`;
-        }
-    } else if (selectGroupType === 'group') {
-        if (jobTitleFilter) {
-            conditions += ` AND co_persons.job_title_id = ${jobTitleFilter}`;
-        }
-        if (genderFilter) {
-            conditions += ` AND co_persons.sex_id = '${genderFilter}'`;
-        }
-        if (branchFilter) {
-            conditions += ` AND co_persons.company_id = ${branchFilter}`;
-        }
-    } else if (selectGroupType === 'staff_page') {
-        if (branchFilter) {
-            conditions += ` AND co_persons.company_id = ${branchFilter}`;
-        }
-    } else if (selectGroupType === 'plan_page') {
-        conditions += ` AND EXISTS (SELECT 1 FROM co_person_course_middleware WHERE person_id = co_persons.id AND course_id IN (SELECT id FROM co_courses WHERE status = 'in_state'))`;
-        orderCondition = " ORDER BY co_persons.surname"; // Сортировка по фамилии
+  let conditions = `co_persons.status = '${status}'`;
+  let orderCondition = "";
+  if (selectGroupType === 'person') {
+    if (allStaffFilter === 'appointed') {
+      conditions += ` AND EXISTS (SELECT 1 FROM co_person_course_middleware WHERE person_id = co_persons.id)`;
     }
-
-    if(selectGroupType === 'person' || selectGroupType === 'staff_page') {
-        if(sortType === 'surname') {
-            orderCondition = " ORDER BY surname";
-        } else if (sortType === 'branch') {
-            orderCondition = " ORDER BY company_title";
-        } else if (sortType === 'job_title') {
-            orderCondition = " ORDER BY job_title_name";
-        }
+  } else if (selectGroupType === 'group') {
+    if (jobTitleFilter) {
+      conditions += ` AND co_persons.job_title_id = ${jobTitleFilter}`;
     }
+    if (genderFilter) {
+      conditions += ` AND co_persons.sex_id = '${genderFilter}'`;
+    }
+    if (branchFilter) {
+      conditions += ` AND co_persons.company_id = ${branchFilter}`;
+    }
+  } else if (selectGroupType === 'staff_page') {
+    if (branchFilter) {
+      conditions += ` AND co_persons.company_id = ${branchFilter}`;
+    }
+  } else if (selectGroupType === 'plan_page') {
+    conditions += ` AND EXISTS (SELECT 1 FROM co_person_course_middleware WHERE person_id = co_persons.id AND course_id IN (SELECT id FROM co_courses WHERE status = 'in_state'))`;
+    orderCondition = " ORDER BY co_persons.surname"; // Сортировка по фамилии
+  }
 
-    const branchTreeQuery = selectGroupType === 'plan_page'
-        ? `SELECT id FROM co_companies WHERE id = $1`
-        : `SELECT id FROM co_companies WHERE id = $1
+  if (selectGroupType === 'person' || selectGroupType === 'staff_page') {
+    if (sortType === 'surname') {
+      orderCondition = " ORDER BY surname";
+    } else if (sortType === 'branch') {
+      orderCondition = " ORDER BY company_title";
+    } else if (sortType === 'job_title') {
+      orderCondition = " ORDER BY job_title_name";
+    }
+  }
+
+  const branchTreeQuery = selectGroupType === 'plan_page'
+    ? `SELECT id FROM co_companies WHERE id = $1`
+    : `SELECT id FROM co_companies WHERE id = $1
           UNION ALL
           SELECT co_companies.id FROM co_companies
           JOIN branch_tree ON co_companies.parent_id = branch_tree.id`;
 
-    const query = `
+  const query = `
       WITH RECURSIVE branch_tree AS (
           ${branchTreeQuery}
       ),
@@ -1165,115 +1165,115 @@ const getFilteredCompanyEmployees = (request, response) => {
       LEFT JOIN person_courses ON co_persons.id = person_courses.person_id
       WHERE ${conditions} ${orderCondition};`;
 
-      pool.query(query, [id], (error, results) => {
-          if (error) {
-              throw error;
-          }
-          response.status(200).json(results.rows);
-      });
+  pool.query(query, [id], (error, results) => {
+    if (error) {
+      throw error;
+    }
+    response.status(200).json(results.rows);
+  });
 };
 
 const getEdu = (request, response) => {
   const { login } = request.body;
   pool.query(
-      'SELECT co_edu_orgs.* ' +
-      'FROM co_users ' +
-      'JOIN co_edu_orgs ON co_users.user_id = co_edu_orgs.id ' +
-      'WHERE co_users.login = $1',
-      [login],
-      (error, results) => {
-          if (error) {
-              response.status(500).json('error');
-              console.error(error);
-          } else {
-              response.status(200).json(results.rows);
-              console.log('organizations', results.rows);
-          }
+    'SELECT co_edu_orgs.* ' +
+    'FROM co_users ' +
+    'JOIN co_edu_orgs ON co_users.user_id = co_edu_orgs.id ' +
+    'WHERE co_users.login = $1',
+    [login],
+    (error, results) => {
+      if (error) {
+        response.status(500).json('error');
+        console.error(error);
+      } else {
+        response.status(200).json(results.rows);
+        console.log('organizations', results.rows);
       }
+    }
   );
 };
 
 const getEduCourse = (request, response) => {
   const { login } = request.body;
   pool.query(
-      'SELECT co_courses.* ' +
-      'FROM co_users ' +
-      'JOIN co_courses ON co_users.user_id = co_courses.edu_org_id ' +
-      'WHERE co_users.login = $1',
-      [login],
-      (error, results) => {
-          if (error) {
-              response.status(500).json('error');
-              console.error(error);
-          } else {
-              response.status(200).json(results.rows);
-              console.log('courses', results.rows);
-          }
+    'SELECT co_courses.* ' +
+    'FROM co_users ' +
+    'JOIN co_courses ON co_users.user_id = co_courses.edu_org_id ' +
+    'WHERE co_users.login = $1',
+    [login],
+    (error, results) => {
+      if (error) {
+        response.status(500).json('error');
+        console.error(error);
+      } else {
+        response.status(200).json(results.rows);
+        console.log('courses', results.rows);
       }
+    }
   );
 };
 
 const getEduProgram = (request, response) => {
   const { login } = request.body;
   pool.query(
-      'SELECT co_programs.* ' +
-      'FROM co_users ' +
-      'JOIN co_courses ON co_users.user_id = co_courses.edu_org_id ' +
-      'JOIN co_programs ON co_courses.id = co_programs.course_id ' +
-      'WHERE co_users.login = $1',
-      [login],
-      (error, results) => {
-          if (error) {
-              response.status(500).json('error');
-              console.error(error);
-          } else {
-              response.status(200).json(results.rows);
-              console.log('programs', results.rows);
-          }
+    'SELECT co_programs.* ' +
+    'FROM co_users ' +
+    'JOIN co_courses ON co_users.user_id = co_courses.edu_org_id ' +
+    'JOIN co_programs ON co_courses.id = co_programs.course_id ' +
+    'WHERE co_users.login = $1',
+    [login],
+    (error, results) => {
+      if (error) {
+        response.status(500).json('error');
+        console.error(error);
+      } else {
+        response.status(200).json(results.rows);
+        console.log('programs', results.rows);
       }
+    }
   );
 };
 
 const getEduCompany = (request, response) => {
   const { login } = request.body;
   pool.query(
-      'SELECT co_companies.* ' +
-      'FROM co_users ' +
-      'JOIN co_courses ON co_users.user_id = co_courses.edu_org_id ' +
-      'JOIN co_companies ON co_courses.company_id = co_companies.id ' +
-      'WHERE co_users.login = $1',
-      [login],
-      (error, results) => {
-          if (error) {
-              response.status(500).json('error');
-              console.error(error);
-          } else {
-              response.status(200).json(results.rows);
-              console.log('companies', results.rows);
-          }
+    'SELECT co_companies.* ' +
+    'FROM co_users ' +
+    'JOIN co_courses ON co_users.user_id = co_courses.edu_org_id ' +
+    'JOIN co_companies ON co_courses.company_id = co_companies.id ' +
+    'WHERE co_users.login = $1',
+    [login],
+    (error, results) => {
+      if (error) {
+        response.status(500).json('error');
+        console.error(error);
+      } else {
+        response.status(200).json(results.rows);
+        console.log('companies', results.rows);
       }
+    }
   );
 };
 
 const getEduLessons = (request, response) => {
   const { login } = request.body;
   pool.query(
-      'SELECT co_lessons.* ' +
-      'FROM co_users ' +
-      'JOIN co_courses ON co_users.user_id = co_courses.edu_org_id ' +
-      'JOIN co_programs ON co_courses.id = co_programs.course_id ' +
-      'JOIN co_lessons ON co_programs.id = co_lessons.program_id ' +
-      'WHERE co_users.login = $1',
-      [login],
-      (error, results) => {
-          if (error) {
-              response.status(500).json('error');
-              console.error(error);
-          } else {
-              response.status(200).json(results.rows);
-              console.log('lessons', results.rows);
-          }
+    'SELECT co_lessons.* ' +
+    'FROM co_users ' +
+    'JOIN co_courses ON co_users.user_id = co_courses.edu_org_id ' +
+    'JOIN co_programs ON co_courses.id = co_programs.course_id ' +
+    'JOIN co_lessons ON co_programs.id = co_lessons.program_id ' +
+    'WHERE co_users.login = $1',
+    [login],
+    (error, results) => {
+      if (error) {
+        response.status(500).json('error');
+        console.error(error);
+      } else {
+        response.status(200).json(results.rows);
+        console.log('lessons', results.rows);
       }
+    }
   );
 };
 
@@ -1306,34 +1306,34 @@ const createLessonEdu = (request, response) => {
 const updateLessonEdu = (request, response) => {
   const { title, program_id, tesis, lesson_order, start_time, id } = request.body;
   pool.query(
-      'UPDATE co_lessons SET title = $1, program_id = $2, tesis = $3, lesson_order = $4, start_time = $5 WHERE id = $6',
-      [title, program_id, tesis, lesson_order, start_time, id],
-      (error, results) => {
-          if (error) {
-              response.status(500).json('error');
-              console.error(error);
-          } else {
-              response.status(200).json('Lesson updated successfully');
-              console.log('Lesson updated successfully');
-          }
+    'UPDATE co_lessons SET title = $1, program_id = $2, tesis = $3, lesson_order = $4, start_time = $5 WHERE id = $6',
+    [title, program_id, tesis, lesson_order, start_time, id],
+    (error, results) => {
+      if (error) {
+        response.status(500).json('error');
+        console.error(error);
+      } else {
+        response.status(200).json('Lesson updated successfully');
+        console.log('Lesson updated successfully');
       }
+    }
   );
 };
 
 const deleteLessonEdu = (request, response) => {
   const { id } = request.body;
   pool.query(
-      'DELETE FROM co_lessons WHERE id = $1',
-      [id],
-      (error, results) => {
-          if (error) {
-              response.status(500).json('error');
-              console.error(error);
-          } else {
-              response.status(200).json('Lesson deleted successfully');
-              console.log('Lesson deleted successfully');
-          }
+    'DELETE FROM co_lessons WHERE id = $1',
+    [id],
+    (error, results) => {
+      if (error) {
+        response.status(500).json('error');
+        console.error(error);
+      } else {
+        response.status(200).json('Lesson deleted successfully');
+        console.log('Lesson deleted successfully');
       }
+    }
   );
 };
 
@@ -1346,13 +1346,13 @@ const addLessonMaterialEdu = (request, response) => {
   const values = [title, description, file_type, link, is_lesson_link, lesson_id];
 
   pool.query(query, values, (error, results) => {
-      if (error) {
-          response.status(500).json('error');
-          console.error(error);
-      } else {
-          response.status(200).json('Lesson material inserted successfully');
-          console.log('Lesson material inserted successfully');
-      }
+    if (error) {
+      response.status(500).json('error');
+      console.error(error);
+    } else {
+      response.status(200).json('Lesson material inserted successfully');
+      console.log('Lesson material inserted successfully');
+    }
   });
 };
 
@@ -1591,59 +1591,59 @@ const updateAnswerIsCorrectEdu = async (request, response) => {
 };
 
 const createEduOrgTotal = async (request, response) => {
-    const { company, courseName, categoryId, cost, organizer, email, studyFormat, hoursCount, selectedIds } = request.body;
+  const { company, courseName, categoryId, cost, organizer, email, studyFormat, hoursCount, selectedIds } = request.body;
 
-    const login = generateRandomString(7);
-    const password = generateRandomString(10);
-    const password_hash = hashPassword(password);
+  const login = generateRandomString(7);
+  const password = generateRandomString(10);
+  const password_hash = hashPassword(password);
 
-    try {
-        await pool.query('BEGIN');
+  try {
+    await pool.query('BEGIN');
 
-        // Шаг 1
-        const orgRes = await pool.query(
-            `INSERT INTO co_edu_orgs (title, email)
+    // Шаг 1
+    const orgRes = await pool.query(
+      `INSERT INTO co_edu_orgs (title, email)
             VALUES ($1, $2) RETURNING id`,
-            [organizer, email]
-        );
-        const orgId = orgRes.rows[0].id;
+      [organizer, email]
+    );
+    const orgId = orgRes.rows[0].id;
 
-        // Шаг 2
-        await pool.query(
-            `INSERT INTO co_users (login, password_hash, role_id, user_id)
+    // Шаг 2
+    await pool.query(
+      `INSERT INTO co_users (login, password_hash, role_id, user_id)
             VALUES ($1, $2, $3, $4)`,
-            [login, password_hash, 3, orgId]
-        );
+      [login, password_hash, 3, orgId]
+    );
 
-        // Шаг 3
-        const courseRes = await pool.query(
-            `INSERT INTO co_courses (title, price, format, hours_count, edu_org_id, study_category_id, company_id)
+    // Шаг 3
+    const courseRes = await pool.query(
+      `INSERT INTO co_courses (title, price, format, hours_count, edu_org_id, study_category_id, company_id)
             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-            [courseName, cost, studyFormat, hoursCount, orgId, categoryId, company]
-        );
-        const courseId = courseRes.rows[0].id;
+      [courseName, cost, studyFormat, hoursCount, orgId, categoryId, company]
+    );
+    const courseId = courseRes.rows[0].id;
 
-        // Шаг 4
-        for(let id of selectedIds){
-            await pool.query(
-                `INSERT INTO co_person_course_middleware (person_id, course_id)
+    // Шаг 4
+    for (let id of selectedIds) {
+      await pool.query(
+        `INSERT INTO co_person_course_middleware (person_id, course_id)
                 VALUES ($1, $2)`,
-                [id, courseId]
-            );
-        }
-
-        await pool.query('COMMIT');
-        sendEmail([email], `Ваши регистрационные данные`,  `Логин: ${login}.\nПароль: ${password}.`);
-        response.json({status: 'success'});
-    } catch (error) {
-        await pool.query('ROLLBACK');
-        response.json({status: 'error', message: error.toString()});
+        [id, courseId]
+      );
     }
+
+    await pool.query('COMMIT');
+    sendEmail([email], `Ваши регистрационные данные`, `Логин: ${login}.\nПароль: ${password}.`);
+    response.json({ status: 'success' });
+  } catch (error) {
+    await pool.query('ROLLBACK');
+    response.json({ status: 'error', message: error.toString() });
+  }
 };
 
 const getCompanyCourses = (request, response) => {
   const { id } = request.body;
-  
+
   const query = `
     WITH RECURSIVE branch_tree AS (
     SELECT id FROM co_companies WHERE id = $1
@@ -1675,7 +1675,7 @@ const getCompanyCourses = (request, response) => {
 
 const getTotalDashboardInfo = (request, response) => {
   const { id } = request.body;
-  
+
   const query = `
     WITH RECURSIVE branch_tree AS (
       SELECT id FROM co_companies WHERE id = $1
@@ -1768,7 +1768,7 @@ const getTotalDashboardInfo = (request, response) => {
     FROM courses_info 
     WHERE courses_info.company_id = $1;
   `;
-  
+
   pool.query(query, [id], (error, results) => {
     if (error) {
       throw error;
@@ -1779,7 +1779,7 @@ const getTotalDashboardInfo = (request, response) => {
 
 const getCompanyExpenses = (request, response) => {
   const { id } = request.body;
-  
+
   const query = `
     SELECT
       co_courses.title AS course_name,
@@ -2017,7 +2017,7 @@ LEFT JOIN co_courses ON branch_tree.id = co_courses.company_id
 LEFT JOIN total_lessons ON co_courses.id = total_lessons.course_id
 LEFT JOIN completed_lessons ON co_courses.id = completed_lessons.course_id
 LEFT JOIN course_status ON co_courses.id = course_status.course_id;`;
-  
+
   const query4 = `WITH RECURSIVE branch_tree AS (
       SELECT id FROM co_companies WHERE id = $1
       UNION ALL
@@ -2074,7 +2074,7 @@ SELECT
 FROM courses_info 
 WHERE courses_info.company_id = $1;`
 
-const query5 = `WITH RECURSIVE branch_tree AS (
+  const query5 = `WITH RECURSIVE branch_tree AS (
     SELECT id, parent_id FROM co_companies WHERE id = $1
     UNION ALL
     SELECT co_companies.id, co_companies.parent_id FROM co_companies
@@ -2124,7 +2124,7 @@ SELECT
 FROM branch_person_courses
 LIMIT 1;`
 
-const query6 = `WITH RECURSIVE 
+  const query6 = `WITH RECURSIVE 
       company_tree AS (
         SELECT id, parent_id FROM co_companies WHERE id = $1
         UNION ALL
@@ -2227,34 +2227,38 @@ FROM total_budget tb, branch_budget bb;`
         throw error;
       }
 
-    pool.query(query3, [id], (error, results3) => {
-      if (error) {
-        throw error;
-      }
+      pool.query(query3, [id], (error, results3) => {
+        if (error) {
+          throw error;
+        }
 
-    pool.query(query4, [id], (error, results4) => {
-      if (error) {
-        throw error;
-      }
+        pool.query(query4, [id], (error, results4) => {
+          if (error) {
+            throw error;
+          }
 
-    pool.query(query5, [id], (error, results5) => {
-      if (error) {
-        throw error;
-      }
+          pool.query(query5, [id], (error, results5) => {
+            if (error) {
+              throw error;
+            }
 
-    pool.query(query6, [id], (error, results6) => {
-      if (error) {
-        throw error;
-      }
+            pool.query(query6, [id], (error, results6) => {
+              if (error) {
+                throw error;
+              }
 
-      response.status(200).json({ ...results1.rows[0], ...results2.rows[0], ...results3.rows[0], ...results4.rows[0], ...results5.rows[0], ...results6.rows[0] });
-    });});});});});
+              response.status(200).json({ ...results1.rows[0], ...results2.rows[0], ...results3.rows[0], ...results4.rows[0], ...results5.rows[0], ...results6.rows[0] });
+            });
+          });
+        });
+      });
+    });
   });
 };
 
 const checkBudgets = (request, response) => {
   const { id } = request.body;
-  
+
   const query = `
     WITH RECURSIVE 
       company_tree AS (
@@ -2359,7 +2363,7 @@ FROM total_budget tb, branch_budget bb;`;
 
 const getCourseAssignments = (request, response) => {
   const { id } = request.body;
-  
+
   const query = `
     WITH RECURSIVE company_tree AS (
       SELECT 
@@ -2470,85 +2474,85 @@ const getSelectedCourseInfo = (request, response) => {
 };
 
 const editSelectedCourseInfo = async (request, response) => {
-    const { courseId, courseName, categoryId, cost, organizerId, organizer, email, studyFormat, hoursCount, selectedIds } = request.body;
+  const { courseId, courseName, categoryId, cost, organizerId, organizer, email, studyFormat, hoursCount, selectedIds } = request.body;
 
-    try {
-        await pool.query('BEGIN');
+  try {
+    await pool.query('BEGIN');
 
-        // Шаг 1: Обновление курса
-        await pool.query(
-            `UPDATE co_courses
+    // Шаг 1: Обновление курса
+    await pool.query(
+      `UPDATE co_courses
             SET title = $1, study_category_id = $2, price = $3, format = $4, hours_count = $5
             WHERE id = $6`,
-            [courseName, categoryId, cost, studyFormat, hoursCount, courseId]
-        );
+      [courseName, categoryId, cost, studyFormat, hoursCount, courseId]
+    );
 
-        // Шаг 2: Обновление организатора
-        await pool.query(
-            `UPDATE co_edu_orgs
+    // Шаг 2: Обновление организатора
+    await pool.query(
+      `UPDATE co_edu_orgs
             SET title = $1, email = $2
             WHERE id = $3`,
-            [organizer, email, organizerId]
-        );
+      [organizer, email, organizerId]
+    );
 
-        // Шаг 3: Удаление и добавление связей
-        const existingRecords = await pool.query(
-            `SELECT person_id FROM co_person_course_middleware WHERE course_id = $1`,
-            [courseId]
-        );
-        
-        const existingIds = existingRecords.rows.map(row => row.person_id);
-        
-        const toAdd = selectedIds.filter(id => !existingIds.includes(id));
-        const toRemove = existingIds.filter(id => !selectedIds.includes(id));
-        
-        for(let id of toAdd){
-            await pool.query(
-                `INSERT INTO co_person_course_middleware (person_id, course_id)
+    // Шаг 3: Удаление и добавление связей
+    const existingRecords = await pool.query(
+      `SELECT person_id FROM co_person_course_middleware WHERE course_id = $1`,
+      [courseId]
+    );
+
+    const existingIds = existingRecords.rows.map(row => row.person_id);
+
+    const toAdd = selectedIds.filter(id => !existingIds.includes(id));
+    const toRemove = existingIds.filter(id => !selectedIds.includes(id));
+
+    for (let id of toAdd) {
+      await pool.query(
+        `INSERT INTO co_person_course_middleware (person_id, course_id)
                 VALUES ($1, $2)`,
-                [id, courseId]
-            );
-        }
-        
-        for(let id of toRemove){
-            await pool.query(
-                `DELETE FROM co_person_course_middleware
+        [id, courseId]
+      );
+    }
+
+    for (let id of toRemove) {
+      await pool.query(
+        `DELETE FROM co_person_course_middleware
                 WHERE person_id = $1 AND course_id = $2`,
-                [id, courseId]
-            );
-            
-            await pool.query(
-                `DELETE FROM co_attendance_control 
+        [id, courseId]
+      );
+
+      await pool.query(
+        `DELETE FROM co_attendance_control 
                 WHERE person_id = $1 AND lesson_id IN (
                     SELECT l.id FROM co_lessons l 
                     JOIN co_programs p ON l.program_id = p.id 
                     WHERE p.course_id = $2
                 )`,
-                [id, courseId]
-            );
-        }
-
-        await pool.query('COMMIT');
-        response.json({status: 'success'});
-    } catch (error) {
-        await pool.query('ROLLBACK');
-        response.json({status: 'error', message: error.toString()});
+        [id, courseId]
+      );
     }
+
+    await pool.query('COMMIT');
+    response.json({ status: 'success' });
+  } catch (error) {
+    await pool.query('ROLLBACK');
+    response.json({ status: 'error', message: error.toString() });
+  }
 };
 
 const getLessonMaterials = async (request, response) => {
-    const { lessonId } = request.body;
-    console.log('lessonId', lessonId)
-    try {
-        const materials = await pool.query(
-            `SELECT * FROM co_lesson_materials WHERE lesson_id = $1`,
-            [lessonId]
-        );
+  const { lessonId } = request.body;
+  console.log('lessonId', lessonId)
+  try {
+    const materials = await pool.query(
+      `SELECT * FROM co_lesson_materials WHERE lesson_id = $1`,
+      [lessonId]
+    );
 
-        response.json({status: 'success', data: materials.rows});
-    } catch (error) {
-        response.json({status: 'error', message: error.toString()});
-    }
+    response.json({ status: 'success', data: materials.rows });
+  } catch (error) {
+    response.json({ status: 'error', message: error.toString() });
+  }
 };
 
 const updateCompanyEmail = (request, response) => {
@@ -2609,16 +2613,16 @@ const updateUserPassword = async (request, response) => {
     if (user.rows.length > 0) {
       // Проверяем старый пароль
       const validPassword = await bcrypt.compare(oldPassword, user.rows[0].password_hash);
-      
+
       if (!validPassword) {
-        return response.status(400).json({error: 'Введен неверный старый пароль'});
+        return response.status(400).json({ error: 'Введен неверный старый пароль' });
       }
 
       // Если старый пароль верный, хешируем и обновляем новый пароль
       const newHashedPassword = hashPassword(newPassword);
       await pool.query('UPDATE co_users SET password_hash = $1 WHERE login = $2', [newHashedPassword, login]);
-      
-      return response.status(200).json({message: 'Пароль успешно изменен'});
+
+      return response.status(200).json({ message: 'Пароль успешно изменен' });
 
     } else {
       return response.status(400).json({ error: 'Пользователь с таким логином не найден' });
@@ -2719,10 +2723,11 @@ const StudentAllInfo = (request, response) => {
     [login],
     (error, result) => {
       if (error) {
-        throw error;
+        // return error.message;
       }
 
       const user_id = result.rows[0].user_id;
+
 
       // Шаг 2
       pool.query(
@@ -2730,10 +2735,11 @@ const StudentAllInfo = (request, response) => {
         [user_id],
         (error, result) => {
           if (error) {
-            throw error;
+            // return error.message;
           }
 
           const co_persons_data = result.rows;
+
 
           // Шаг 3
           pool.query(
@@ -2741,16 +2747,17 @@ const StudentAllInfo = (request, response) => {
             [user_id],
             (error, result) => {
               if (error) {
-                throw error;
+                // return;
               }
 
               if (result.rows.length === 0) {
                 // Course not found
-                response.send('Course not found.');
-                return;
+                // response.send('Course not found.');
+                // return;
               }
 
               const course_ids = result.rows.map(row => row.course_id);
+
 
               // Шаг 4
               const fetchCourses = (course_id, callback) => {
@@ -2759,7 +2766,7 @@ const StudentAllInfo = (request, response) => {
                   [course_id],
                   (error, result) => {
                     if (error) {
-                      throw error;
+                      // return;
                     }
 
                     callback(result.rows[0]);
@@ -2776,12 +2783,15 @@ const StudentAllInfo = (request, response) => {
                   co_courses_data.push(courseData);
 
                   fetchedCoursesCount++;
+
                   if (fetchedCoursesCount === course_ids.length) {
                     // All courses data fetched, continue to Шаг 5
+
                     continueToStep5();
                   }
                 });
               }
+
 
               const continueToStep5 = () => {
                 // Шаг 5
@@ -2789,13 +2799,15 @@ const StudentAllInfo = (request, response) => {
                 const edu_org_id = selected_course[0].edu_org_id;
                 // console.log(co_courses_data, selected_course, edu_org_id, "co_courses_data")
 
+
                 // Шаг 6
                 pool.query(
                   'SELECT title FROM co_edu_orgs WHERE id = $1',
                   [edu_org_id],
                   (error, result) => {
                     if (error) {
-                      throw error;
+                      console.log(error.message)
+                      // return;
                     }
 
                     const co_edu_orgs_title = result.rows[0].title;
@@ -2806,7 +2818,7 @@ const StudentAllInfo = (request, response) => {
                       [selected_course[0].id],
                       (error, result) => {
                         if (error) {
-                          throw error;
+                          // return;
                         }
 
                         const co_programs_data = result.rows;
@@ -2817,10 +2829,11 @@ const StudentAllInfo = (request, response) => {
                           [selected_course[0].id],
                           (error, result) => {
                             if (error) {
-                              throw error;
+                              // return;
                             }
 
                             const co_lessons_data = result.rows;
+
 
                             // Шаг 9
                             pool.query(
@@ -2828,16 +2841,18 @@ const StudentAllInfo = (request, response) => {
                               [selected_course[0].id],
                               (error, result) => {
                                 if (error) {
-                                  throw error;
+                                  console.log(error.message)
+                                  // return;
                                 }
 
                                 const lesson_ids = result.rows.map(row => row.id);
                                 const lesson_ids_str = lesson_ids.join(',');
                                 if (!lesson_ids_str) {
                                   // Handle the error case here, e.g., send an empty response or an error message
-                                  response.send({error: 'No lessons found for provided course.'});
-                                  return;
+                                  // response.send({ error: 'No lessons found for provided course.' });
+                                  // return;
                                 }
+
 
                                 // Step 10 - Use the comma-separated string in the query
                                 pool.query(
@@ -2845,7 +2860,7 @@ const StudentAllInfo = (request, response) => {
                                   [user_id],
                                   (error, result) => {
                                     if (error) {
-                                      throw error;
+                                      // return;
                                     }
 
                                     const co_answers_data = result.rows;
@@ -2856,7 +2871,7 @@ const StudentAllInfo = (request, response) => {
                                       [user_id],
                                       (error, result) => {
                                         if (error) {
-                                          throw error;
+                                          // return;
                                         }
 
                                         const co_edu_comments_data = result.rows;
@@ -2867,7 +2882,7 @@ const StudentAllInfo = (request, response) => {
                                           [user_id],
                                           (error, result) => {
                                             if (error) {
-                                              throw error;
+                                              // return;
                                             }
 
                                             const co_student_comments_data = result.rows;
@@ -2878,10 +2893,11 @@ const StudentAllInfo = (request, response) => {
                                               [user_id],
                                               (error, result) => {
                                                 if (error) {
-                                                  throw error;
+                                                  // return;
                                                 }
 
                                                 const co_attendance_control_data = result.rows;
+
 
                                                 // Additional Step for co_issued_sertificates
                                                 pool.query(
@@ -2889,51 +2905,77 @@ const StudentAllInfo = (request, response) => {
                                                   [user_id],
                                                   (error, result) => {
                                                     if (error) {
-                                                      throw error;
+                                                      // return;
                                                     }
 
                                                     const co_issued_sertificates_data = result.rows;
                                                     const sertificate_ids = co_issued_sertificates_data.map(row => row.sertificate_id);
+
                                                     if (lesson_ids.length === 0) {
                                                       // Handle the error case here, e.g., send an empty response or an error message
-                                                      response.send({error: 'No lessons found.'});
-                                                      return;
+                                                      // response.send({ error: 'No lessons found.' });
+                                                      // return;
                                                     }
                                                     const sertificate_ids_str = sertificate_ids.join(',');
                                                     if (!sertificate_ids_str) {
                                                       // Handle the error case here, e.g., send an empty response or an error message
-                                                      response.send({error: 'No lessons found for provided course.'});
-                                                      return;
+                                                      // response.send({ error: 'No lessons found for provided course.' });
+                                                      // return;
                                                     }
 
                                                     // Final Step - Fetch co_sertificates data using sertificate_ids_str
-                                                    pool.query(
-                                                      'SELECT * FROM co_sertificates WHERE id IN (' + sertificate_ids_str + ')',
-                                                      (error, result) => {
-                                                        if (error) {
-                                                          throw error;
+                                                    if (sertificate_ids_str) {
+                                                      pool.query(
+                                                        'SELECT * FROM co_sertificates WHERE id IN (' + sertificate_ids_str + ')',
+                                                        (error, result) => {
+                                                          if (error) {
+                                                            // return;
+                                                          }
+
+                                                          const co_sertificates_data = result.rows;
+
+                                                          // Prepare and send the response
+                                                          const finalResponse = {
+                                                            co_persons_data,
+                                                            co_courses_data,
+                                                            co_edu_orgs_title,
+                                                            co_programs_data,
+                                                            co_lessons_data,
+                                                            co_answers_data,
+                                                            co_edu_comments_data,
+                                                            co_student_comments_data,
+                                                            co_attendance_control_data,
+                                                            co_issued_sertificates_data,
+                                                            co_sertificates_data,
+                                                          };
+
+                                                          response.send(finalResponse);
                                                         }
+                                                      );
+                                                    } else {
+                                                      // Final Step - Fetch co_sertificates data using sertificate_ids_str
+                                                    
+                                                          // Prepare and send the response
+                                                          
+                                                          const finalResponse = {
+                                                            co_persons_data,
+                                                            co_courses_data,
+                                                            co_edu_orgs_title,
+                                                            co_programs_data,
+                                                            co_lessons_data,
+                                                            co_answers_data,
+                                                            co_edu_comments_data,
+                                                            co_student_comments_data,
+                                                            co_attendance_control_data,
+                                                            co_issued_sertificates_data,
+                                                            
+                                                          };
+                                                          
+                                                          response.send(finalResponse);
+                                                        
+                                                    
+                                                    }
 
-                                                        const co_sertificates_data = result.rows;
-
-                                                        // Prepare and send the response
-                                                        const finalResponse = {
-                                                          co_persons_data,
-                                                          co_courses_data,
-                                                          co_edu_orgs_title,
-                                                          co_programs_data,
-                                                          co_lessons_data,
-                                                          co_answers_data,
-                                                          co_edu_comments_data,
-                                                          co_student_comments_data,
-                                                          co_attendance_control_data,
-                                                          co_issued_sertificates_data,
-                                                          co_sertificates_data,
-                                                        };
-
-                                                        response.send(finalResponse);
-                                                      }
-                                                    );
                                                   }
                                                 );
                                               }
@@ -3072,21 +3114,38 @@ const createAnswerStudent = async (request, response) => {
   const { text, exercise_id, is_correct, lesson_id, user_id } = request.body;
 
   try {
-    const result = await pool.query(
-      'INSERT INTO co_answers (text, exercise_id, is_correct, lesson_id, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-      [text, exercise_id, is_correct, lesson_id, user_id]
+    // Проверяем существует ли запись с заданными exercise_id, lesson_id и user_id
+    const existingRecord = await pool.query(
+      'SELECT * FROM co_answers WHERE exercise_id = $1 AND lesson_id = $2 AND user_id = $3',
+      [exercise_id, lesson_id, user_id]
     );
+    
+    if (existingRecord.rows.length > 0) {
+      // Если запись существует, обновляем ее
+      const result = await pool.query(
+        'UPDATE co_answers SET text = $1, is_correct = $2 WHERE id = $3',
+        [text, is_correct, existingRecord.rows[0].id]
+      );
 
-    const coAnswerId = result.rows[0].id;
+      response.status(200).json({ message: 'CoAnswer updated successfully', coAnswerId: existingRecord.rows[0].id });
+      console.log('CoAnswer updated successfully. CoAnswer ID:', existingRecord.rows[0].id);
+    } else {
+      // Если запись не существует, вставляем новую запись
+      const result = await pool.query(
+        'INSERT INTO co_answers (text, exercise_id, is_correct, lesson_id, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+        [text, exercise_id, is_correct, lesson_id, user_id]
+      );
 
-    response.status(200).json({ message: 'CoAnswer created successfully', coAnswerId });
-    console.log('CoAnswer created successfully. CoAnswer ID:', coAnswerId);
+      const coAnswerId = result.rows[0].id;
+
+      response.status(200).json({ message: 'CoAnswer created successfully', coAnswerId });
+      console.log('CoAnswer created successfully. CoAnswer ID:', coAnswerId);
+    }
   } catch (error) {
     response.status(500).json('error');
     console.error(error);
   }
 };
-
 
 
 export default {
