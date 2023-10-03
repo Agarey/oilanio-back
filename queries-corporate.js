@@ -916,6 +916,18 @@ const getAllFamilyStatuses = (request, response) => {
   })
 }
 
+const getStudyCategoryTypes = (request, response) => {
+  pool.query('SELECT * FROM co_study_category_types ORDER BY name ASC', (error, results) => {
+    if (error) {
+      console.error('Error fetching study category types:', error);
+      response.status(500).json({ message: 'Internal Server Error' });
+      return;
+    }
+    console.log('stady category types statuses sent');
+    response.status(200).json(results.rows);
+  });
+}
+
 const getJobTitlesByCompanyId = (request, response) => {
   const { id } = request.body;
 
@@ -3189,6 +3201,7 @@ export default {
   getCompanyBranches,
   getAllGenders,
   getAllFamilyStatuses,
+  getStudyCategoryTypes,
   getJobTitlesByCompanyId,
   createPerson,
   addJobTitle,
