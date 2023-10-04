@@ -634,46 +634,71 @@ const getPlanCategories = (request, response) => {
 };
 
 const createCompanyPlan = async (request, response) => {
-  const {
-    totalBudget,
-    companyId,
-    existingCategories,
-    newCategories
-  } = request.body;
+  const { totalBudget, companyId, existingCategories, newCategories } = request.body;
 
+  const existingCategoryNames = existingCategories.map(e => e.category);
+  const newCategoryNames = newCategories.map(n => n.customCategory || n.category);
+
+  const uniqueNewCategoryNames = new Set(newCategoryNames);
+  const hasDuplicatesInNew = uniqueNewCategoryNames.size !== newCategoryNames.length;
+  const hasCommonBetweenNewAndExisting = [...uniqueNewCategoryNames].some(name => existingCategoryNames.includes(name));
+
+  if (hasDuplicatesInNew || hasCommonBetweenNewAndExisting) {
+    response.status(400).send('Duplicate category names found.');
+    return;
+  }
+  const client = await pool.connect();
+  console.log({totalBudget, companyId, existingCategories, newCategories})
   try {
-    const planResult = await pool.query(
-      `INSERT INTO co_study_plans (company_id, price) VALUES ($1, $2) RETURNING id`,
-      [companyId, totalBudget]
-    );
-
-    const planId = planResult.rows[0].id;
-
-    for (let i = 0; i < newCategories.length; i++) {
-      const categoryResult = await pool.query(
-        `INSERT INTO co_study_categories (name, company_id) VALUES ($1, $2) RETURNING id`,
-        [newCategories[i].category, companyId]
+      await client.query('BEGIN');
+      const planResult = await client.query(
+          `INSERT INTO co_study_plans (company_id, price) VALUES ($1, $2) RETURNING *`,
+          [companyId, totalBudget]
       );
-
-      const categoryId = categoryResult.rows[0].id;
-
-      await pool.query(
-        `INSERT INTO co_plan_category_middleware (plan_id, study_category_id, price) VALUES ($1, $2, $3)`,
-        [planId, categoryId, newCategories[i].budget]
-      );
-    }
-
-    for (let i = 0; i < existingCategories.length; i++) {
-      await pool.query(
-        `INSERT INTO co_plan_category_middleware (plan_id, study_category_id, price) VALUES ($1, $2, $3)`,
-        [planId, existingCategories[i].id, existingCategories[i].budget]
-      );
-    }
-
-    response.status(201).json({ success: true, message: 'Plan added' });
+      const planId = planResult.rows[0].id;
+      for (let i = 0; i < newCategories.length; i++) {
+          let categoryCheckResult = await client.query(
+              `SELECT id FROM co_study_categories WHERE name = $1 AND company_id = $2`,
+              [newCategories[i].category, companyId]
+          );
+          let categoryId;
+          if (categoryCheckResult.rowCount > 0) {
+              categoryId = categoryCheckResult.rows[0].id;
+          } else {
+            const categoryResult = await client.query(
+              `INSERT INTO co_study_categories (name, company_id, type_id) VALUES ($1, $2, $3) RETURNING id`,
+              [newCategories[i].customCategory || newCategories[i].category, companyId, newCategories[i].categoryType]
+          );
+          categoryId = categoryResult.rows[0].id;
+          }
+          await client.query(
+              `INSERT INTO co_plan_category_middleware (plan_id, study_category_id, price) VALUES ($1, $2, $3)`,
+              [planId, categoryId, newCategories[i].budget]
+          );
+      }
+      for (let i = 0; i < existingCategories.length; i++) {
+        const categoryResult = await client.query(
+            `SELECT id FROM co_study_categories WHERE name = $1 AND company_id = $2`,
+            [existingCategories[i].category, companyId]
+        );
+        if (categoryResult.rowCount === 0) {
+            response.status(400).send(`Category ${existingCategories[i].category} not found.`);
+            return;
+        }
+        const categoryId = categoryResult.rows[0].id;
+        await client.query(
+            `INSERT INTO co_plan_category_middleware (plan_id, study_category_id, price) VALUES ($1, $2, $3)`,
+            [planId, categoryId, existingCategories[i].budget]
+        );
+      }
+      await client.query('COMMIT');
+      response.status(201).json({ success: true, plan: planResult.rows[0] });
   } catch (error) {
-    console.error('Error:', error);
-    response.status(500).send('Error in creating plan');
+      await client.query('ROLLBACK');
+      console.error('Error:', error);
+      response.status(500).send('Error in creating plan');
+  } finally {
+      client.release();
   }
 };
 
