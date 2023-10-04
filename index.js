@@ -521,6 +521,24 @@ app.post(
     }
 );
 
+app.delete("/file/delete/:fileName", async (req, res) => {
+    const fileName = req.params.fileName;
+    const filePath = path.join(__dirname, `./uploads/${fileName}`);
+    console.log(fileName, "fileName");
+
+    try {
+        await fs.promises.access(filePath);
+        await fs.promises.unlink(filePath);
+
+        res.status(200).send("File deleted successfully");
+        console.log(`File ${fileName} deleted`);
+    } catch (error) {
+        console.error("Error during file deletion:", error);
+        res.status(500).send("Error during file deletion");
+    }
+});
+
+
 app.post(
   '/downloadArchive',
   bodyParser.json(),
