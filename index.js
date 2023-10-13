@@ -365,6 +365,10 @@ app.delete('/deleteGroupMiddleware', db_classroom.deleteGroupMiddleware)
 app.post('/getProgramsByStudentIdGroup/:id', db_classroom.getProgramsByStudentIdGroup)
 app.post('/getStudentsByTeacherIdGroup', db_classroom.getStudentsByTeacherIdGroup)
 app.post('/getStudentsInfoByRoom/:room', db_classroom.getStudentsInfoByRoom)
+app.post('/getLessonAttendance', db_classroom.getLessonAttendance)
+app.post('/createAttendanceControlTeacher', db_classroom.createAttendanceControlTeacher)
+app.post('/getLessonMaterialsOC', db_classroom.getLessonMaterialsOC)
+app.post('/addLessonMaterialOC', db_classroom.addLessonMaterialOC)
 
 
 app.post('/createLocation', db_corporate.createLocation)

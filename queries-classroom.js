@@ -2608,6 +2608,78 @@ const getStudentsInfoByRoom = (request, response) => {
 //     );
 //   };
 
+const getLessonAttendance = (request, response) => {
+    const { lesson_id } = request.body; 
+    console.log('getLessonAttendance', lesson_id)
+    pool.query(
+      'SELECT * FROM oc_attendance_control WHERE lesson_id = $1',
+      [lesson_id],
+      (error, result) => {
+        if (error) {
+          response.status(500).json('error');
+          console.error(error);
+        } else {
+          response.status(200).json(result.rows);
+          console.log('Attendance data retrieved successfully');
+        }
+      }
+    );
+  };
+
+  const createAttendanceControlTeacher = (request, response) => {
+    const { person_id, lesson_id } = request.body;
+    const query = `
+      INSERT INTO oc_attendance_control (person_id, lesson_id)
+      VALUES ($1, $2)
+      RETURNING id
+    `;
+  
+    pool.query(query, [person_id, lesson_id], (error, results) => {
+      if (error) {
+        response.status(500).json('error');
+        console.error(error);
+      } else {
+        const newId = results.rows[0].id;
+        response.status(200).json({ id: newId, message: 'Attendance control created successfully' });
+        console.log('Attendance control created successfully. New ID:', newId);
+      }
+    });
+  };
+
+  const getLessonMaterialsOC = async (request, response) => {
+    const { lessonId } = request.body;
+    console.log('lessonId', lessonId)
+    try {
+      const materials = await pool.query(
+        `SELECT * FROM oc_lesson_materials WHERE lesson_id = $1`,
+        [lessonId]
+      );
+  
+      response.json({ status: 'success', data: materials.rows });
+    } catch (error) {
+      response.json({ status: 'error', message: error.toString() });
+    }
+  };
+
+  const addLessonMaterialOC = (request, response) => {
+    const { title, description, file_type, link, is_lesson_link, lesson_id } = request.body;
+    const query = `
+        INSERT INTO oc_lesson_materials (title, description, file_type, link, is_lesson_link, lesson_id)
+        VALUES ($1, $2, $3, $4, $5, $6)
+    `;
+    const values = [title, description, file_type, link, is_lesson_link, lesson_id];
+  
+    pool.query(query, values, (error, results) => {
+      if (error) {
+        response.status(500).json('error');
+        console.error(error);
+      } else {
+        response.status(200).json('Lesson material inserted successfully');
+        console.log('Lesson material inserted successfully');
+      }
+    });
+  };
+
 export default {
   createTicket,
   getCaptcha,
@@ -2741,5 +2813,9 @@ export default {
   deleteGroupMiddleware,
   getProgramsByStudentIdGroup,
   getStudentsByTeacherIdGroup,
-  getStudentsInfoByRoom
+  getStudentsInfoByRoom,
+  getLessonAttendance,
+  createAttendanceControlTeacher,
+  getLessonMaterialsOC,
+  addLessonMaterialOC
 };
